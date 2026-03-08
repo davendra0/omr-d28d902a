@@ -182,6 +182,52 @@ const ResultsPage = () => {
           ))}
         </div>
       </div>
+
+      {/* Export dialog */}
+      {showExportDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/50">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-sm w-full mx-4 space-y-4">
+            <h2 className="text-lg font-bold text-foreground">Export as HTML</h2>
+            <p className="text-sm text-muted-foreground">
+              Enter a name for this test. The exported file will be a self-contained interactive HTML page.
+            </p>
+            <input
+              type="text"
+              value={exportName}
+              onChange={(e) => setExportName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && exportName.trim()) {
+                  exportTestAsHtml({ testName: exportName.trim(), result: result!, answerKey });
+                  setShowExportDialog(false);
+                }
+              }}
+              placeholder="e.g. JEE Mains Mock 3"
+              autoFocus
+              className="w-full px-3 py-2 border border-border rounded text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowExportDialog(false)}
+                className="px-4 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (exportName.trim()) {
+                    exportTestAsHtml({ testName: exportName.trim(), result: result!, answerKey });
+                    setShowExportDialog(false);
+                  }
+                }}
+                disabled={!exportName.trim()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-bold hover:opacity-90 disabled:opacity-50"
+              >
+                Export
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
