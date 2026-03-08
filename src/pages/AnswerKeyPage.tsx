@@ -1,12 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Check, SkipForward } from 'lucide-react';
 import type { AnswerKey, Option } from '@/types/test';
-import { cn } from '@/lib/utils';
 
 const validOptions = ['A', 'B', 'C', 'D'];
 
@@ -17,10 +12,10 @@ const AnswerKeyPage = () => {
   const questions = result?.responses ?? [];
   const [answers, setAnswers] = useState<AnswerKey>({});
   const [currentIdx, setCurrentIdx] = useState(0);
-  const inputRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus();
+    containerRef.current?.focus();
   }, [currentIdx]);
 
   if (!result) {
@@ -35,9 +30,8 @@ const AnswerKeyPage = () => {
     const key = e.key.toUpperCase();
     if (validOptions.includes(key)) {
       setAnswers((prev) => ({ ...prev, [currentQ.questionNo]: key as Option }));
-      // Auto-advance
       if (currentIdx < questions.length - 1) {
-        setTimeout(() => setCurrentIdx((i) => i + 1), 150);
+        setTimeout(() => setCurrentIdx((i) => i + 1), 100);
       }
     } else if (e.key === 'Enter') {
       if (currentIdx < questions.length - 1) {
@@ -69,73 +63,84 @@ const AnswerKeyPage = () => {
     <div
       className="min-h-screen bg-background p-4 outline-none"
       tabIndex={0}
-      ref={inputRef}
+      ref={containerRef}
       onKeyDown={handleKeyDown}
     >
-      <div className="max-w-lg mx-auto space-y-4">
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/results')}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="text-xl font-bold font-mono">Answer Key</h1>
-          <Badge variant="secondary" className="ml-auto font-mono">
-            {totalFilled}/{questions.length}
-          </Badge>
+      <div className="max-w-2xl mx-auto space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/results')}
+              className="px-3 py-2 border border-border rounded text-sm text-foreground hover:bg-muted"
+            >
+              ← Back
+            </button>
+            <h1 className="text-xl font-bold font-mono text-foreground">Answer Key</h1>
+          </div>
+          <span className="font-mono text-sm text-muted-foreground">{totalFilled}/{questions.length}</span>
         </div>
 
-        <Card className="border-border/50">
-          <CardHeader className="pb-3">
-            <CardDescription>
-              Press <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">A</kbd>{' '}
-              <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">B</kbd>{' '}
-              <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">C</kbd>{' '}
-              <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">D</kbd>{' '}
-              to set answer • <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">↑↓</kbd> to navigate •{' '}
-              <kbd className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">⌫</kbd> to clear
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-[50vh] overflow-y-auto">
-              {questions.map((q, idx) => (
-                <div
-                  key={q.questionNo}
-                  onClick={() => setCurrentIdx(idx)}
-                  className={cn(
-                    'flex items-center gap-4 px-4 py-2.5 border-b border-border/50 cursor-pointer transition-colors',
-                    idx === currentIdx && 'bg-primary/5 border-l-2 border-l-primary'
-                  )}
-                >
-                  <span className="font-mono text-sm font-bold w-10 text-right text-muted-foreground">
-                    {q.questionNo}.
-                  </span>
-                  <div className="flex gap-2">
-                    {validOptions.map((opt) => (
-                      <div
-                        key={opt}
-                        className={cn(
-                          'w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all',
-                          answers[q.questionNo] === opt
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'border-border/50 text-muted-foreground'
-                        )}
-                      >
-                        {opt}
-                      </div>
-                    ))}
-                  </div>
-                  {answers[q.questionNo] && (
-                    <Check className="w-4 h-4 text-success ml-auto" />
-                  )}
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="bg-muted p-3 rounded text-xs text-muted-foreground">
+          Press <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">A</kbd>{' '}
+          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">B</kbd>{' '}
+          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">C</kbd>{' '}
+          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">D</kbd>{' '}
+          to set answer • <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">↑↓</kbd> navigate •{' '}
+          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">⌫</kbd> clear
+        </div>
 
-        <Button onClick={handleSubmit} className="w-full h-11 font-semibold gap-2">
-          <Check className="w-5 h-5" />
-          Apply Answer Key & Check
-        </Button>
+        {/* Answer key list */}
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="max-h-[60vh] overflow-y-auto">
+            {questions.map((q, idx) => (
+              <div
+                key={q.questionNo}
+                onClick={() => setCurrentIdx(idx)}
+                className={`flex items-center gap-4 px-4 py-3 border-b border-border/30 cursor-pointer transition-colors
+                  ${idx === currentIdx ? 'bg-primary/10 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}
+                  ${idx % 2 !== 0 ? 'bg-muted/20' : ''}
+                `}
+              >
+                <span className="font-mono text-sm font-bold w-14 text-right text-muted-foreground">
+                  Q.{q.questionNo}
+                </span>
+                <div className="flex gap-2">
+                  {validOptions.map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAnswers((prev) => ({ ...prev, [q.questionNo]: opt as Option }));
+                        if (idx === currentIdx && currentIdx < questions.length - 1) {
+                          setTimeout(() => setCurrentIdx((i) => i + 1), 100);
+                        }
+                      }}
+                      className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold font-mono transition-all
+                        ${answers[q.questionNo] === opt
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'border-border text-muted-foreground hover:border-primary hover:text-foreground'
+                        }
+                      `}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+                {answers[q.questionNo] && (
+                  <span className="ml-auto font-mono text-xs text-success font-bold">✓</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          className="w-full h-12 bg-primary text-primary-foreground font-bold text-base rounded hover:opacity-90 transition-opacity"
+        >
+          ✓ Apply Answer Key & Check
+        </button>
       </div>
     </div>
   );
