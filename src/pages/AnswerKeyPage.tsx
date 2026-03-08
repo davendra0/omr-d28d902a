@@ -29,7 +29,8 @@ const AnswerKeyPage = () => {
   const totalFilled = Object.keys(answers).length;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    const key = e.key.toUpperCase();
+    const mapped = numberToOption[e.key];
+    const key = mapped ?? e.key.toUpperCase();
     if (validOptions.includes(key)) {
       setAnswers((prev) => ({ ...prev, [currentQ.questionNo]: key as Option }));
       if (currentIdx < questions.length - 1) {
