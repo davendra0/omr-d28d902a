@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface TimerProps {
   totalSeconds: number;
@@ -7,15 +7,17 @@ interface TimerProps {
 
 const Timer = ({ totalSeconds, onTimeUp }: TimerProps) => {
   const [remaining, setRemaining] = useState(totalSeconds);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
+    if (paused) return;
     if (remaining <= 0) {
       onTimeUp();
       return;
     }
     const id = setInterval(() => setRemaining((r) => r - 1), 1000);
     return () => clearInterval(id);
-  }, [remaining, onTimeUp]);
+  }, [remaining, onTimeUp, paused]);
 
   const hours = Math.floor(remaining / 3600);
   const mins = Math.floor((remaining % 3600) / 60);
@@ -26,9 +28,19 @@ const Timer = ({ totalSeconds, onTimeUp }: TimerProps) => {
   const colorClass = pct > 0.25 ? 'text-success' : pct > 0.1 ? 'text-review' : 'text-destructive';
 
   return (
-    <span className={`font-mono text-xl font-bold ${colorClass} transition-colors`}>
-      ⏱ {pad(hours)}:{pad(mins)}:{pad(secs)}
-    </span>
+    <div className="flex items-center gap-2">
+      <span className={`font-mono text-xl font-bold ${colorClass} transition-colors`}>
+        ⏱ {pad(hours)}:{pad(mins)}:{pad(secs)}
+      </span>
+      <button
+        type="button"
+        onClick={() => setPaused((p) => !p)}
+        className="px-2 py-1 border border-border rounded text-xs font-bold text-foreground hover:bg-muted transition-colors"
+        title={paused ? 'Resume timer' : 'Pause timer'}
+      >
+        {paused ? '▶ Resume' : '⏸ Pause'}
+      </button>
+    </div>
   );
 };
 
