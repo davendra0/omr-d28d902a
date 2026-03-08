@@ -81,6 +81,12 @@ const ResultsPage = () => {
               </button>
             )}
             <button
+              onClick={() => { setExportName(''); setShowExportDialog(true); }}
+              className="px-3 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted"
+            >
+              📥 Export HTML
+            </button>
+            <button
               onClick={() => { reset(); navigate('/'); }}
               className="px-3 py-2 bg-secondary text-secondary-foreground rounded text-sm font-medium hover:opacity-80"
             >
