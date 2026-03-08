@@ -1,5 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Clock } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface TimerProps {
   totalSeconds: number;
@@ -24,13 +23,12 @@ const Timer = ({ totalSeconds, onTimeUp }: TimerProps) => {
   const pad = (n: number) => n.toString().padStart(2, '0');
 
   const pct = remaining / totalSeconds;
-  const colorClass = pct > 0.25 ? 'text-timer-safe' : pct > 0.1 ? 'text-timer-warn' : 'text-timer';
+  const colorClass = pct > 0.25 ? 'text-success' : pct > 0.1 ? 'text-review' : 'text-destructive';
 
   return (
-    <div className={`flex items-center gap-2 font-mono text-lg font-bold ${colorClass} transition-colors`}>
-      <Clock className="w-5 h-5" />
-      <span>{pad(hours)}:{pad(mins)}:{pad(secs)}</span>
-    </div>
+    <span className={`font-mono text-xl font-bold ${colorClass} transition-colors`}>
+      ⏱ {pad(hours)}:{pad(mins)}:{pad(secs)}
+    </span>
   );
 };
 
