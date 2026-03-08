@@ -111,57 +111,15 @@ const SetupPage = () => {
         </div>
       </div>
 
-      {/* Past Tests */}
+      {/* Past Tests button */}
       {savedTests.length > 0 && (
-        <div className="w-full max-w-md mt-8 space-y-3">
-          <h2 className="text-lg font-bold font-mono text-foreground">📋 Past Tests</h2>
-          <div className="space-y-2">
-            {savedTests.map((test) => {
-              const r = test.result;
-              const answered = r.responses.filter(q => q.selected !== null).length;
-              const total = r.responses.length;
-              let score: number | null = null;
-              if (test.answerKey) {
-                score = 0;
-                r.responses.forEach(q => {
-                  if (q.selected) {
-                    if (test.answerKey![q.questionNo] === q.selected) score! += 4;
-                    else if (test.answerKey![q.questionNo]) score! -= 1;
-                  }
-                });
-              }
-
-              return (
-                <div
-                  key={test.id}
-                  className="bg-card border border-border rounded-lg p-4 hover:border-primary/40 transition-colors cursor-pointer"
-                  onClick={() => handleLoadTest(test)}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="font-mono font-bold text-foreground truncate">{test.name}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{formatDate(test.savedAt)}</div>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteTest(test.id); }}
-                      className="text-muted-foreground hover:text-destructive text-sm shrink-0 p-1"
-                      title="Delete"
-                    >
-                      🗑
-                    </button>
-                  </div>
-                  <div className="flex gap-4 mt-2 text-xs font-mono text-muted-foreground">
-                    <span>{total} Q</span>
-                    <span>✓ {answered}/{total}</span>
-                    <span>⏱ {formatTime(r.endTime - r.startTime)}</span>
-                    {score !== null && (
-                      <span className="text-primary font-bold">{score}/{total * 4}</span>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <div className="w-full max-w-md mt-8">
+          <button
+            onClick={() => navigate('/history')}
+            className="w-full h-12 border-2 border-border rounded-lg font-bold font-mono text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2"
+          >
+            📋 Past Tests ({savedTests.length})
+          </button>
         </div>
       )}
     </div>

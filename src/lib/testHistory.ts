@@ -38,6 +38,11 @@ export function deleteTest(id: string): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tests));
 }
 
+export function renameTest(id: string, newName: string): void {
+  const tests = getSavedTests().map(t => t.id === id ? { ...t, name: newName } : t);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tests));
+}
+
 export function getTestById(id: string): SavedTest | undefined {
   return getSavedTests().find(t => t.id === id);
 }

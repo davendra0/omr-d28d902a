@@ -1,4 +1,4 @@
-import { useCallback, useState, useMemo } from 'react';
+import { useCallback, useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
 import Timer from '@/components/Timer';
@@ -11,8 +11,18 @@ const TestPage = () => {
   const { config, responses, selectOption, toggleReview, endTest } = useTestStore();
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
-  // eliminated[questionNo] = Set of eliminated options (visual only)
+  const [showQuitWarning, setShowQuitWarning] = useState(false);
   const [eliminated, setEliminated] = useState<Record<number, Set<string>>>({});
+
+  // Warn on browser back / close
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   const handleEnd = useCallback(() => {
     endTest();
@@ -29,27 +39,26 @@ const TestPage = () => {
     e.preventDefault();
     setEliminated((prev) => {
       const set = new Set(prev[questionNo] || []);
-      if (set.has(opt)) {
-        set.delete(opt);
-      } else {
-        set.add(opt);
-      }
+      if (set.has(opt)) set.delete(opt);
+      else set.add(opt);
       return { ...prev, [questionNo]: set };
     });
   };
 
   const handleLeftClick = (questionNo: number, opt: Option, isEliminated: boolean) => {
     if (isEliminated) {
-      // Remove elimination on left click
       setEliminated((prev) => {
         const set = new Set(prev[questionNo] || []);
         set.delete(opt!);
         return { ...prev, [questionNo]: set };
       });
     } else {
-      // Normal select/deselect
       selectOption(questionNo, opt!);
     }
+  };
+
+  const handleQuit = () => {
+    setShowQuitWarning(true);
   };
 
   if (!config) {
@@ -62,7 +71,16 @@ const TestPage = () => {
       {/* Sticky header */}
       <div className="sticky top-0 z-50 bg-card border-b-2 border-border px-4 py-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between gap-4 flex-wrap">
-          <Timer totalSeconds={config.timeInMinutes * 60} onTimeUp={handleEnd} />
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleQuit}
+              className="px-2 py-2 border border-border rounded text-sm text-foreground hover:bg-muted"
+              title="Home"
+            >
+              🏠
+            </button>
+            <Timer totalSeconds={config.timeInMinutes * 60} onTimeUp={handleEnd} />
+          </div>
           <div className="flex items-center gap-4 text-sm font-mono">
             <span className="text-muted-foreground">
               Q{config.startFrom}–{config.startFrom + config.totalQuestions - 1}
@@ -91,7 +109,7 @@ const TestPage = () => {
         </p>
       </div>
 
-      {/* OMR Sheet - Row format */}
+      {/* OMR Sheet */}
       <div className="flex-1 max-w-4xl mx-auto w-full p-4 pt-2">
         <div className="bg-card border border-border rounded-lg overflow-hidden">
           {responses.map((r, idx) => {
@@ -104,12 +122,9 @@ const TestPage = () => {
                   ${r.selected ? 'border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}
                 `}
               >
-                {/* Question number */}
                 <span className="font-mono text-base font-bold text-muted-foreground w-14 text-right shrink-0">
                   Q.{r.questionNo}
                 </span>
-
-                {/* Option buttons */}
                 <div className="flex items-center gap-2">
                   {optionsList.map((opt) => {
                     const isElim = qEliminated.has(opt!);
@@ -142,8 +157,6 @@ const TestPage = () => {
                     );
                   })}
                 </div>
-
-                {/* Review toggle */}
                 <button
                   type="button"
                   onClick={() => toggleReview(r.questionNo)}
@@ -160,7 +173,7 @@ const TestPage = () => {
         </div>
       </div>
 
-      {/* Submit confirmation modal */}
+      {/* Submit confirmation */}
       {showConfirm && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/50">
           <div className="bg-card border border-border rounded-lg p-6 max-w-sm w-full mx-4 space-y-4">
@@ -184,6 +197,38 @@ const TestPage = () => {
                 className="px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-bold hover:opacity-90"
               >
                 Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quit warning */}
+      {showQuitWarning && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/50">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-sm w-full mx-4 space-y-4">
+            <h2 className="text-lg font-bold text-destructive">⚠ Quit Test?</h2>
+            <p className="text-sm text-muted-foreground">
+              Your progress will be <strong>lost</strong>. You have answered <strong>{stats.answered}/{stats.total}</strong> questions.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowQuitWarning(false)}
+                className="px-4 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted"
+              >
+                Continue Test
+              </button>
+              <button
+                onClick={() => { handleEnd(); }}
+                className="px-4 py-2 bg-review text-foreground rounded text-sm font-bold hover:opacity-90"
+              >
+                Submit & Exit
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="px-4 py-2 bg-destructive text-destructive-foreground rounded text-sm font-bold hover:opacity-90"
+              >
+                Quit
               </button>
             </div>
           </div>

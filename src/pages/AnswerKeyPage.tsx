@@ -5,6 +5,7 @@ import DarkModeToggle from '@/components/DarkModeToggle';
 import type { AnswerKey, Option } from '@/types/test';
 
 const validOptions = ['A', 'B', 'C', 'D'];
+const numberToOption: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
 
 const AnswerKeyPage = () => {
   const { result, setAnswerKey } = useTestStore();
@@ -28,7 +29,8 @@ const AnswerKeyPage = () => {
   const totalFilled = Object.keys(answers).length;
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    const key = e.key.toUpperCase();
+    const mapped = numberToOption[e.key];
+    const key = mapped ?? e.key.toUpperCase();
     if (validOptions.includes(key)) {
       setAnswers((prev) => ({ ...prev, [currentQ.questionNo]: key as Option }));
       if (currentIdx < questions.length - 1) {
@@ -71,6 +73,13 @@ const AnswerKeyPage = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
+              onClick={() => navigate('/')}
+              className="px-2 py-2 border border-border rounded text-sm text-foreground hover:bg-muted"
+              title="Home"
+            >
+              🏠
+            </button>
+            <button
               onClick={() => navigate('/results')}
               className="px-3 py-2 border border-border rounded text-sm text-foreground hover:bg-muted"
             >
@@ -85,10 +94,10 @@ const AnswerKeyPage = () => {
         </div>
 
         <div className="bg-muted p-3 rounded text-xs text-muted-foreground">
-          Press <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">A</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">B</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">C</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">D</kbd>{' '}
+          Press <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">A/1</kbd>{' '}
+          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">B/2</kbd>{' '}
+          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">C/3</kbd>{' '}
+          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">D/4</kbd>{' '}
           to set answer • <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">↑↓</kbd> navigate •{' '}
           <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">⌫</kbd> clear
         </div>
