@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
+import DarkModeToggle from '@/components/DarkModeToggle';
 
 const SetupPage = () => {
   const [totalQuestions, setTotalQuestions] = useState('');
