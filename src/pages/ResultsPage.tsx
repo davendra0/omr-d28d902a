@@ -9,6 +9,8 @@ const options: Option[] = ['A', 'B', 'C', 'D'];
 const ResultsPage = () => {
   const { result, answerKey, reset } = useTestStore();
   const navigate = useNavigate();
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportName, setExportName] = useState('');
 
   if (!result) {
     navigate('/');
