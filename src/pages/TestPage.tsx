@@ -2,6 +2,7 @@ import { useCallback, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
 import Timer from '@/components/Timer';
+import DarkModeToggle from '@/components/DarkModeToggle';
 import type { Option } from '@/types/test';
 
 const options: Option[] = ['A', 'B', 'C', 'D'];
