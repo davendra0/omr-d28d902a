@@ -206,6 +206,9 @@ const AnalysisPage = () => {
             ← Back
           </button>
           <h1 className="text-xl font-bold font-mono text-foreground">Detailed Analysis</h1>
+          <div className="ml-auto">
+            <DarkModeToggle />
+          </div>
         </div>
 
         {/* Score summary */}

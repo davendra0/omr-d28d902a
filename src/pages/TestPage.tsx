@@ -44,6 +44,7 @@ const TestPage = () => {
             {stats.reviewed > 0 && (
               <span className="text-review font-bold">⚑ {stats.reviewed}</span>
             )}
+            <DarkModeToggle />
             <button
               onClick={() => setShowConfirm(true)}
               className="px-4 py-2 bg-primary text-primary-foreground font-bold rounded hover:opacity-90 transition-opacity"

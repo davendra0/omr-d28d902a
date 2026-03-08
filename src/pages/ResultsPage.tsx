@@ -64,9 +64,10 @@ const ResultsPage = () => {
     <div className="min-h-screen bg-background p-4">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <h1 className="text-2xl font-bold font-mono text-foreground">Response Sheet</h1>
-          <div className="flex gap-2 flex-wrap">
+         <div className="flex items-center justify-between flex-wrap gap-3">
+           <h1 className="text-2xl font-bold font-mono text-foreground">Response Sheet</h1>
+           <div className="flex gap-2 flex-wrap">
+             <DarkModeToggle />
             <button
               onClick={() => navigate('/answer-key')}
               className="px-3 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted"

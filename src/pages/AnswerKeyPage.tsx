@@ -78,7 +78,10 @@ const AnswerKeyPage = () => {
             </button>
             <h1 className="text-xl font-bold font-mono text-foreground">Answer Key</h1>
           </div>
-          <span className="font-mono text-sm text-muted-foreground">{totalFilled}/{questions.length}</span>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-sm text-muted-foreground">{totalFilled}/{questions.length}</span>
+            <DarkModeToggle />
+          </div>
         </div>
 
         <div className="bg-muted p-3 rounded text-xs text-muted-foreground">
