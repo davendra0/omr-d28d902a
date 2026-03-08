@@ -94,10 +94,10 @@ const AnswerKeyPage = () => {
         </div>
 
         <div className="bg-muted p-3 rounded text-xs text-muted-foreground">
-          Press <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">A</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">B</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">C</kbd>{' '}
-          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">D</kbd>{' '}
+          Press <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">A/1</kbd>{' '}
+          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">B/2</kbd>{' '}
+          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">C/3</kbd>{' '}
+          <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">D/4</kbd>{' '}
           to set answer • <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">↑↓</kbd> navigate •{' '}
           <kbd className="px-1.5 py-0.5 bg-card border border-border rounded font-mono">⌫</kbd> clear
         </div>

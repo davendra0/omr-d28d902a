@@ -71,6 +71,13 @@ const ResultsPage = () => {
          <div className="flex items-center justify-between flex-wrap gap-3">
            <h1 className="text-2xl font-bold font-mono text-foreground">Response Sheet</h1>
            <div className="flex gap-2 flex-wrap">
+             <button
+               onClick={() => navigate('/')}
+               className="px-2 py-2 border border-border rounded text-sm text-foreground hover:bg-muted"
+               title="Home"
+             >
+               🏠
+             </button>
              <DarkModeToggle />
             <button
               onClick={() => navigate('/answer-key')}
