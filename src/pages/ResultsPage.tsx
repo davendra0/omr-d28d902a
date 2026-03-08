@@ -13,6 +13,9 @@ const ResultsPage = () => {
   const navigate = useNavigate();
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportName, setExportName] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [saved, setSaved] = useState(false);
 
   if (!result) {
     navigate('/');
