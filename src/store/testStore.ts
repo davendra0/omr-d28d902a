@@ -15,6 +15,7 @@ interface TestStore {
   toggleReview: (questionNo: number) => void;
   endTest: () => void;
   setAnswerKey: (key: AnswerKey) => void;
+  setResult: (result: TestResult) => void;
   reset: () => void;
 }
 
@@ -76,6 +77,14 @@ export const useTestStore = create<TestStore>((set, get) => ({
   },
 
   setAnswerKey: (key) => set({ answerKey: key }),
+
+  setResult: (result) => set({
+    result,
+    config: result.config,
+    responses: result.responses,
+    startTime: result.startTime,
+    endTime: result.endTime,
+  }),
 
   reset: () =>
     set({

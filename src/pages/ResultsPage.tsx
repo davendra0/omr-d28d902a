@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
 import { exportTestAsHtml } from '@/lib/exportHtml';
+import { saveTest } from '@/lib/testHistory';
 import DarkModeToggle from '@/components/DarkModeToggle';
 import type { Option } from '@/types/test';
 
@@ -12,6 +13,9 @@ const ResultsPage = () => {
   const navigate = useNavigate();
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [exportName, setExportName] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [saveName, setSaveName] = useState('');
+  const [saved, setSaved] = useState(false);
 
   if (!result) {
     navigate('/');
@@ -82,6 +86,12 @@ const ResultsPage = () => {
                 📊 Analysis
               </button>
             )}
+            <button
+              onClick={() => { setSaveName(''); setSaved(false); setShowSaveDialog(true); }}
+              className="px-3 py-2 border border-success/50 rounded text-sm font-medium text-foreground hover:bg-success/10"
+            >
+              💾 Save
+            </button>
             <button
               onClick={() => { setExportName(''); setShowExportDialog(true); }}
               className="px-3 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted"
@@ -227,6 +237,67 @@ const ResultsPage = () => {
                 Export
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Save dialog */}
+      {showSaveDialog && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/50">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-sm w-full mx-4 space-y-4">
+            <h2 className="text-lg font-bold text-foreground">💾 Save Test</h2>
+            <p className="text-sm text-muted-foreground">
+              Save this test locally so you can view it later from the home screen.
+            </p>
+            {saved ? (
+              <div className="text-center py-4">
+                <div className="text-3xl mb-2">✅</div>
+                <div className="text-sm text-success font-bold">Saved successfully!</div>
+                <button
+                  onClick={() => setShowSaveDialog(false)}
+                  className="mt-4 px-4 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={saveName}
+                  onChange={(e) => setSaveName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && saveName.trim()) {
+                      saveTest(saveName.trim(), result!, answerKey);
+                      setSaved(true);
+                    }
+                  }}
+                  placeholder="e.g. JEE Mains Mock 3"
+                  autoFocus
+                  className="w-full px-3 py-2 border border-border rounded text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowSaveDialog(false)}
+                    className="px-4 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (saveName.trim()) {
+                        saveTest(saveName.trim(), result!, answerKey);
+                        setSaved(true);
+                      }
+                    }}
+                    disabled={!saveName.trim()}
+                    className="px-4 py-2 bg-success text-success-foreground rounded text-sm font-bold hover:opacity-90 disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

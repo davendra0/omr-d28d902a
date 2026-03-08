@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
 import DarkModeToggle from '@/components/DarkModeToggle';
@@ -440,62 +440,125 @@ const AnalysisPage = () => {
           </div>
         )}
 
-        {/* Full question table */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2 bg-muted border-b border-border">
-            <h3 className="font-mono text-xs text-muted-foreground font-bold">QUESTION-WISE BREAKDOWN</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground text-xs font-mono bg-muted/50">
-                  <th className="p-2 text-right w-14">Q.No</th>
-                  <th className="p-2 w-14">Yours</th>
-                  <th className="p-2 w-14">Key</th>
-                  <th className="p-2 w-16">Status</th>
-                  <th className="p-2 w-16 text-right">Marks</th>
-                  <th className="p-2 text-right">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analysis.map((item, idx) => (
-                  <tr
-                    key={item.questionNo}
-                    className={`border-b border-border/20 ${
-                      item.isCorrect ? 'bg-success/5' : item.isWrong ? 'bg-destructive/5' : ''
-                    } ${idx % 2 !== 0 ? 'bg-muted/10' : ''}`}
-                  >
-                    <td className="p-2 font-mono font-bold text-right text-muted-foreground">{item.questionNo}</td>
-                    <td className={`p-2 font-mono font-bold ${!item.selected ? 'text-muted-foreground/40' : 'text-foreground'}`}>
-                      {item.selected ?? '—'}
-                    </td>
-                    <td className="p-2 font-mono font-bold text-primary">{item.correct ?? '—'}</td>
-                    <td className="p-2 font-mono text-xs font-bold">
-                      {item.isSkipped ? (
-                        <span className="text-muted-foreground">SKIP</span>
-                      ) : item.isCorrect ? (
-                        <span className="text-success">✓</span>
-                      ) : (
-                        <span className="text-destructive">✗</span>
-                      )}
-                    </td>
-                    <td className={`p-2 text-right font-mono font-bold text-xs ${
-                      item.marks > 0 ? 'text-success' : item.marks < 0 ? 'text-destructive' : 'text-muted-foreground'
-                    }`}>
-                      {item.marks > 0 ? `+${item.marks}` : item.marks}
-                    </td>
-                    <td className="p-2 text-right font-mono text-xs text-muted-foreground">
-                      {item.timeGap != null ? fmt(item.timeGap) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {/* Full question table with sort */}
+        <QuestionTable analysis={analysis} fmt={fmt} />
+
       </div>
     </div>
   );
 };
+
+type SortMode = 'default' | 'time-desc' | 'time-asc' | 'wrong-slow' | 'right-slow' | 'correct-only' | 'wrong-only' | 'skipped-only';
+
+const SORT_OPTIONS: { value: SortMode; label: string }[] = [
+  { value: 'default', label: '# Order' },
+  { value: 'time-desc', label: '⏱ Slowest' },
+  { value: 'time-asc', label: '⚡ Fastest' },
+  { value: 'wrong-slow', label: '✗ Wrong + Slow' },
+  { value: 'right-slow', label: '✓ Right + Slow' },
+  { value: 'correct-only', label: '✓ Correct only' },
+  { value: 'wrong-only', label: '✗ Wrong only' },
+  { value: 'skipped-only', label: '— Skipped only' },
+];
+
+function QuestionTable({ analysis, fmt }: { analysis: any[]; fmt: (s: number) => string }) {
+  const [sortMode, setSortMode] = useState<SortMode>('default');
+
+  const sorted = useMemo(() => {
+    let items = [...analysis];
+    switch (sortMode) {
+      case 'time-desc':
+        return items.filter(a => a.timeGap != null).sort((a, b) => b.timeGap - a.timeGap);
+      case 'time-asc':
+        return items.filter(a => a.timeGap != null).sort((a, b) => a.timeGap - b.timeGap);
+      case 'wrong-slow':
+        return items.filter(a => a.isWrong && a.timeGap != null).sort((a, b) => b.timeGap - a.timeGap);
+      case 'right-slow':
+        return items.filter(a => a.isCorrect && a.timeGap != null).sort((a, b) => b.timeGap - a.timeGap);
+      case 'correct-only':
+        return items.filter(a => a.isCorrect);
+      case 'wrong-only':
+        return items.filter(a => a.isWrong);
+      case 'skipped-only':
+        return items.filter(a => a.isSkipped);
+      default:
+        return items;
+    }
+  }, [analysis, sortMode]);
+
+  return (
+    <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="px-4 py-2 bg-muted border-b border-border flex items-center justify-between flex-wrap gap-2">
+        <h3 className="font-mono text-xs text-muted-foreground font-bold">QUESTION-WISE BREAKDOWN</h3>
+        <div className="flex gap-1.5 flex-wrap">
+          {SORT_OPTIONS.map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => setSortMode(opt.value)}
+              className={`px-2 py-1 text-[10px] font-mono rounded border transition-colors ${
+                sortMode === opt.value
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-border text-muted-foreground hover:border-primary/40 hover:text-foreground'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+      {sorted.length === 0 ? (
+        <div className="p-6 text-center text-sm text-muted-foreground">No questions match this filter</div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-muted-foreground text-xs font-mono bg-muted/50">
+                <th className="p-2 text-right w-14">Q.No</th>
+                <th className="p-2 w-14">Yours</th>
+                <th className="p-2 w-14">Key</th>
+                <th className="p-2 w-16">Status</th>
+                <th className="p-2 w-16 text-right">Marks</th>
+                <th className="p-2 text-right">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((item: any, idx: number) => (
+                <tr
+                  key={item.questionNo}
+                  className={`border-b border-border/20 ${
+                    item.isCorrect ? 'bg-success/5' : item.isWrong ? 'bg-destructive/5' : ''
+                  } ${idx % 2 !== 0 ? 'bg-muted/10' : ''}`}
+                >
+                  <td className="p-2 font-mono font-bold text-right text-muted-foreground">{item.questionNo}</td>
+                  <td className={`p-2 font-mono font-bold ${!item.selected ? 'text-muted-foreground/40' : 'text-foreground'}`}>
+                    {item.selected ?? '—'}
+                  </td>
+                  <td className="p-2 font-mono font-bold text-primary">{item.correct ?? '—'}</td>
+                  <td className="p-2 font-mono text-xs font-bold">
+                    {item.isSkipped ? (
+                      <span className="text-muted-foreground">SKIP</span>
+                    ) : item.isCorrect ? (
+                      <span className="text-success">✓</span>
+                    ) : (
+                      <span className="text-destructive">✗</span>
+                    )}
+                  </td>
+                  <td className={`p-2 text-right font-mono font-bold text-xs ${
+                    item.marks > 0 ? 'text-success' : item.marks < 0 ? 'text-destructive' : 'text-muted-foreground'
+                  }`}>
+                    {item.marks > 0 ? `+${item.marks}` : item.marks}
+                  </td>
+                  <td className="p-2 text-right font-mono text-xs text-muted-foreground">
+                    {item.timeGap != null ? fmt(item.timeGap) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default AnalysisPage;
