@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
+import DarkModeToggle from '@/components/DarkModeToggle';
 import type { AnswerKey, Option } from '@/types/test';
 
 const validOptions = ['A', 'B', 'C', 'D'];
