@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
+import { exportTestAsHtml } from '@/lib/exportHtml';
 import type { Option } from '@/types/test';
 
 const options: Option[] = ['A', 'B', 'C', 'D'];
