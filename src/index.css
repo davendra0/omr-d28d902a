@@ -103,6 +103,58 @@
 }
 
 @layer utilities {
+  /* OMR Grid Cell */
+  .omr-cell {
+    @apply relative p-2 rounded-lg border border-border/40 bg-card transition-all duration-100;
+    min-width: 0;
+  }
+  .omr-cell:hover {
+    @apply border-border;
+  }
+  .omr-cell-review {
+    @apply border-review/40 bg-review/5;
+  }
+  .omr-cell-answered {
+    @apply border-primary/30;
+  }
+
+  /* Small OMR Bubbles */
+  .omr-bubble-sm {
+    @apply w-7 h-7 rounded-full border-2 border-border/60 flex items-center justify-center text-[10px] font-bold font-mono cursor-pointer transition-all duration-100 select-none text-muted-foreground/60;
+  }
+  .omr-bubble-sm:hover:not(:disabled) {
+    @apply border-primary/50 text-foreground scale-110;
+  }
+  .omr-bubble-sm-filled {
+    @apply bg-[hsl(var(--bubble-filled))] text-[hsl(var(--bubble-foreground))] border-[hsl(var(--bubble-filled))] shadow-sm;
+  }
+  .omr-bubble-sm-filled:hover:not(:disabled) {
+    @apply opacity-85 scale-110;
+  }
+  .omr-bubble-sm-correct {
+    @apply bg-success text-success-foreground border-success;
+  }
+  .omr-bubble-sm-wrong {
+    @apply bg-destructive text-destructive-foreground border-destructive;
+  }
+
+  /* OMR Grid */
+  .omr-grid {
+    @apply grid gap-2;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  }
+  @media (min-width: 640px) {
+    .omr-grid {
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    }
+  }
+  @media (min-width: 1024px) {
+    .omr-grid {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+  }
+
+  /* Legacy row (kept for answer key) */
   .omr-bubble {
     @apply w-9 h-9 rounded-full border-2 border-border flex items-center justify-center cursor-pointer transition-all duration-150 text-sm font-semibold select-none;
   }
