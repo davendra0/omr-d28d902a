@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
+import DarkModeToggle from '@/components/DarkModeToggle';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
@@ -8,10 +9,10 @@ import {
 } from 'recharts';
 
 const COLORS = {
-  correct: 'hsl(142, 71%, 45%)',
-  incorrect: 'hsl(0, 72%, 51%)',
-  unanswered: 'hsl(220, 10%, 70%)',
-  primary: 'hsl(174, 62%, 42%)',
+  correct: 'hsl(142, 71%, 40%)',
+  incorrect: 'hsl(0, 84%, 60%)',
+  unanswered: 'hsl(215, 16%, 47%)',
+  primary: 'hsl(221, 83%, 53%)',
   warn: 'hsl(38, 92%, 50%)',
 };
 
@@ -205,6 +206,9 @@ const AnalysisPage = () => {
             ← Back
           </button>
           <h1 className="text-xl font-bold font-mono text-foreground">Detailed Analysis</h1>
+          <div className="ml-auto">
+            <DarkModeToggle />
+          </div>
         </div>
 
         {/* Score summary */}

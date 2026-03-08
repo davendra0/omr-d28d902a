@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
+import DarkModeToggle from '@/components/DarkModeToggle';
 
 const SetupPage = () => {
   const [totalQuestions, setTotalQuestions] = useState('');
@@ -21,6 +22,9 @@ const SetupPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-background">
+      <div className="absolute top-4 right-4">
+        <DarkModeToggle />
+      </div>
       <div className="w-full max-w-md space-y-8">
         <div className="text-center">
           <h1 className="text-3xl font-bold font-mono tracking-tight text-foreground">OMR Test</h1>

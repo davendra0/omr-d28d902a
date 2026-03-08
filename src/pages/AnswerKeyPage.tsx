@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
+import DarkModeToggle from '@/components/DarkModeToggle';
 import type { AnswerKey, Option } from '@/types/test';
 
 const validOptions = ['A', 'B', 'C', 'D'];
@@ -77,7 +78,10 @@ const AnswerKeyPage = () => {
             </button>
             <h1 className="text-xl font-bold font-mono text-foreground">Answer Key</h1>
           </div>
-          <span className="font-mono text-sm text-muted-foreground">{totalFilled}/{questions.length}</span>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-sm text-muted-foreground">{totalFilled}/{questions.length}</span>
+            <DarkModeToggle />
+          </div>
         </div>
 
         <div className="bg-muted p-3 rounded text-xs text-muted-foreground">
