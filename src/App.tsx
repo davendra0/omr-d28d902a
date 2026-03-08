@@ -8,6 +8,7 @@ import TestPage from "./pages/TestPage";
 import ResultsPage from "./pages/ResultsPage";
 import AnswerKeyPage from "./pages/AnswerKeyPage";
 import AnalysisPage from "./pages/AnalysisPage";
+import HistoryPage from "./pages/HistoryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
