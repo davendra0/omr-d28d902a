@@ -2,9 +2,8 @@ import { useCallback, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
 import Timer from '@/components/Timer';
-import OMRRow from '@/components/OMRRow';
+import OMRCell from '@/components/OMRCell';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle, Flag, Send, AlertTriangle } from 'lucide-react';
 import {
@@ -42,40 +41,44 @@ const TestPage = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Sticky header */}
-      <div className="sticky top-0 z-50 bg-card/95 backdrop-blur border-b border-border px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
+      <div className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border px-4 py-3 shadow-sm">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-4">
             <Timer totalSeconds={config.timeInMinutes * 60} onTimeUp={handleEnd} />
+            <div className="h-6 w-px bg-border hidden sm:block" />
+            <span className="font-mono text-xs text-muted-foreground hidden sm:block">
+              Q{config.startFrom}–{config.startFrom + config.totalQuestions - 1}
+            </span>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
-            <Badge variant="secondary" className="gap-1 font-mono">
-              <CheckCircle className="w-3.5 h-3.5" />
+            <Badge variant="secondary" className="gap-1 font-mono text-xs">
+              <CheckCircle className="w-3 h-3" />
               {stats.answered}/{stats.total}
             </Badge>
-            <Badge variant="outline" className="gap-1 font-mono text-review border-review/30">
-              <Flag className="w-3.5 h-3.5" />
+            <Badge variant="outline" className="gap-1 font-mono text-xs text-review border-review/30">
+              <Flag className="w-3 h-3" />
               {stats.reviewed}
             </Badge>
-            <Button size="sm" onClick={() => setShowConfirm(true)} className="gap-1.5 font-semibold">
-              <Send className="w-4 h-4" />
+            <Button size="sm" onClick={() => setShowConfirm(true)} className="gap-1.5 font-semibold text-xs h-8">
+              <Send className="w-3.5 h-3.5" />
               Submit
             </Button>
           </div>
         </div>
       </div>
 
-      {/* OMR Sheet */}
-      <div className="flex-1 max-w-3xl mx-auto w-full p-4">
-        <Card className="overflow-hidden border-border/50">
+      {/* OMR Grid Sheet */}
+      <div className="flex-1 max-w-6xl mx-auto w-full p-4">
+        <div className="omr-grid">
           {responses.map((r) => (
-            <OMRRow
+            <OMRCell
               key={r.questionNo}
               response={r}
               onSelect={(opt) => selectOption(r.questionNo, opt)}
               onToggleReview={() => toggleReview(r.questionNo)}
             />
           ))}
-        </Card>
+        </div>
       </div>
 
       {/* Submit confirmation */}
