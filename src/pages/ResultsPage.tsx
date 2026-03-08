@@ -87,6 +87,12 @@ const ResultsPage = () => {
               </button>
             )}
             <button
+              onClick={() => { setSaveName(''); setSaved(false); setShowSaveDialog(true); }}
+              className="px-3 py-2 border border-success/50 rounded text-sm font-medium text-foreground hover:bg-success/10"
+            >
+              💾 Save
+            </button>
+            <button
               onClick={() => { setExportName(''); setShowExportDialog(true); }}
               className="px-3 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted"
             >
