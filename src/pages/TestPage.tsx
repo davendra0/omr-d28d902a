@@ -88,6 +88,9 @@ const TestPage = () => {
             <span className="text-primary font-bold">
               ✓ {stats.answered}/{stats.total}
             </span>
+            <span className="text-muted-foreground">
+              ○ {stats.total - stats.answered} left
+            </span>
             {stats.reviewed > 0 && (
               <span className="text-review font-bold">⚑ {stats.reviewed}</span>
             )}
