@@ -5,6 +5,7 @@ import DarkModeToggle from '@/components/DarkModeToggle';
 import type { AnswerKey, Option } from '@/types/test';
 
 const validOptions = ['A', 'B', 'C', 'D'];
+const numberToOption: Record<string, string> = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
 
 const AnswerKeyPage = () => {
   const { result, setAnswerKey } = useTestStore();
