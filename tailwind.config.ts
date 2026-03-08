@@ -57,6 +57,21 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        bubble: {
+          DEFAULT: "hsl(var(--bubble))",
+          filled: "hsl(var(--bubble-filled))",
+          foreground: "hsl(var(--bubble-foreground))",
+        },
+        review: "hsl(var(--review))",
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
+        timer: {
+          DEFAULT: "hsl(var(--timer))",
+          safe: "hsl(var(--timer-safe))",
+          warn: "hsl(var(--timer-warn))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
