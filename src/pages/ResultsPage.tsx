@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
 import { exportTestAsHtml } from '@/lib/exportHtml';
+import { saveTest } from '@/lib/testHistory';
 import DarkModeToggle from '@/components/DarkModeToggle';
 import type { Option } from '@/types/test';
 
