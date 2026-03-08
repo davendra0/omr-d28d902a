@@ -1,10 +1,9 @@
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
-import OMRRow from '@/components/OMRRow';
+import OMRCell from '@/components/OMRCell';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { KeyRound, BarChart3, RotateCcw, CheckCircle, XCircle, MinusCircle, Clock } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
+import { KeyRound, BarChart3, RotateCcw, CheckCircle, MinusCircle, Clock, Flag } from 'lucide-react';
 
 const ResultsPage = () => {
   const { result, answerKey, reset } = useTestStore();
@@ -15,7 +14,7 @@ const ResultsPage = () => {
     return null;
   }
 
-  const { responses, startTime, endTime, config } = result;
+  const { responses, startTime, endTime } = result;
   const totalTimeSec = Math.round((endTime - startTime) / 1000);
   const answered = responses.filter((r) => r.selected !== null).length;
   const unanswered = responses.length - answered;
@@ -39,18 +38,18 @@ const ResultsPage = () => {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-3xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <h1 className="text-2xl font-bold font-mono">Response Sheet</h1>
           <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={() => navigate('/answer-key')} className="gap-1.5">
               <KeyRound className="w-4 h-4" />
-              Enter Answer Key
+              Answer Key
             </Button>
             {answerKey && (
               <Button variant="outline" size="sm" onClick={() => navigate('/analysis')} className="gap-1.5">
                 <BarChart3 className="w-4 h-4" />
-                View Analysis
+                Analysis
               </Button>
             )}
             <Button variant="secondary" size="sm" onClick={() => { reset(); navigate('/'); }} className="gap-1.5">
@@ -62,35 +61,35 @@ const ResultsPage = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card className="border-border/50">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold font-mono text-primary">{answered}</div>
-              <div className="text-xs text-muted-foreground flex items-center justify-center gap-1 mt-1">
+          <Card className="border-primary/20">
+            <CardContent className="p-3 text-center">
+              <div className="text-xl font-bold font-mono text-primary">{answered}</div>
+              <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
                 <CheckCircle className="w-3 h-3" /> Answered
               </div>
             </CardContent>
           </Card>
           <Card className="border-border/50">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold font-mono text-muted-foreground">{unanswered}</div>
-              <div className="text-xs text-muted-foreground flex items-center justify-center gap-1 mt-1">
+            <CardContent className="p-3 text-center">
+              <div className="text-xl font-bold font-mono text-muted-foreground">{unanswered}</div>
+              <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
                 <MinusCircle className="w-3 h-3" /> Unanswered
               </div>
             </CardContent>
           </Card>
-          <Card className="border-border/50">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold font-mono text-review">{reviewed}</div>
-              <div className="text-xs text-muted-foreground flex items-center justify-center gap-1 mt-1">
-                <XCircle className="w-3 h-3" /> For Review
+          <Card className="border-review/20">
+            <CardContent className="p-3 text-center">
+              <div className="text-xl font-bold font-mono text-review">{reviewed}</div>
+              <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                <Flag className="w-3 h-3" /> Review
               </div>
             </CardContent>
           </Card>
           <Card className="border-border/50">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold font-mono">{formatTime(totalTimeSec)}</div>
-              <div className="text-xs text-muted-foreground flex items-center justify-center gap-1 mt-1">
-                <Clock className="w-3 h-3" /> Total Time
+            <CardContent className="p-3 text-center">
+              <div className="text-xl font-bold font-mono">{formatTime(totalTimeSec)}</div>
+              <div className="text-[11px] text-muted-foreground flex items-center justify-center gap-1 mt-0.5">
+                <Clock className="w-3 h-3" /> Time
               </div>
             </CardContent>
           </Card>
@@ -99,24 +98,24 @@ const ResultsPage = () => {
         {answerKey && (
           <div className="grid grid-cols-2 gap-3">
             <Card className="border-success/30">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold font-mono text-success">{correct}</div>
-                <div className="text-xs text-muted-foreground">Correct</div>
+              <CardContent className="p-3 text-center">
+                <div className="text-xl font-bold font-mono text-success">{correct}</div>
+                <div className="text-[11px] text-muted-foreground">Correct</div>
               </CardContent>
             </Card>
             <Card className="border-destructive/30">
-              <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold font-mono text-destructive">{incorrect}</div>
-                <div className="text-xs text-muted-foreground">Incorrect</div>
+              <CardContent className="p-3 text-center">
+                <div className="text-xl font-bold font-mono text-destructive">{incorrect}</div>
+                <div className="text-[11px] text-muted-foreground">Incorrect</div>
               </CardContent>
             </Card>
           </div>
         )}
 
-        {/* Response OMR */}
-        <Card className="overflow-hidden border-border/50">
+        {/* OMR Grid */}
+        <div className="omr-grid">
           {responses.map((r) => (
-            <OMRRow
+            <OMRCell
               key={r.questionNo}
               response={r}
               onSelect={() => {}}
@@ -125,7 +124,7 @@ const ResultsPage = () => {
               correctAnswer={answerKey?.[r.questionNo] ?? undefined}
             />
           ))}
-        </Card>
+        </div>
       </div>
     </div>
   );
