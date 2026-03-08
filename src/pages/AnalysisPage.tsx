@@ -440,59 +440,9 @@ const AnalysisPage = () => {
           </div>
         )}
 
-        {/* Full question table */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
-          <div className="px-4 py-2 bg-muted border-b border-border">
-            <h3 className="font-mono text-xs text-muted-foreground font-bold">QUESTION-WISE BREAKDOWN</h3>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border text-muted-foreground text-xs font-mono bg-muted/50">
-                  <th className="p-2 text-right w-14">Q.No</th>
-                  <th className="p-2 w-14">Yours</th>
-                  <th className="p-2 w-14">Key</th>
-                  <th className="p-2 w-16">Status</th>
-                  <th className="p-2 w-16 text-right">Marks</th>
-                  <th className="p-2 text-right">Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {analysis.map((item, idx) => (
-                  <tr
-                    key={item.questionNo}
-                    className={`border-b border-border/20 ${
-                      item.isCorrect ? 'bg-success/5' : item.isWrong ? 'bg-destructive/5' : ''
-                    } ${idx % 2 !== 0 ? 'bg-muted/10' : ''}`}
-                  >
-                    <td className="p-2 font-mono font-bold text-right text-muted-foreground">{item.questionNo}</td>
-                    <td className={`p-2 font-mono font-bold ${!item.selected ? 'text-muted-foreground/40' : 'text-foreground'}`}>
-                      {item.selected ?? '—'}
-                    </td>
-                    <td className="p-2 font-mono font-bold text-primary">{item.correct ?? '—'}</td>
-                    <td className="p-2 font-mono text-xs font-bold">
-                      {item.isSkipped ? (
-                        <span className="text-muted-foreground">SKIP</span>
-                      ) : item.isCorrect ? (
-                        <span className="text-success">✓</span>
-                      ) : (
-                        <span className="text-destructive">✗</span>
-                      )}
-                    </td>
-                    <td className={`p-2 text-right font-mono font-bold text-xs ${
-                      item.marks > 0 ? 'text-success' : item.marks < 0 ? 'text-destructive' : 'text-muted-foreground'
-                    }`}>
-                      {item.marks > 0 ? `+${item.marks}` : item.marks}
-                    </td>
-                    <td className="p-2 text-right font-mono text-xs text-muted-foreground">
-                      {item.timeGap != null ? fmt(item.timeGap) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        {/* Full question table with sort */}
+        <QuestionTable analysis={analysis} fmt={fmt} />
+
       </div>
     </div>
   );
