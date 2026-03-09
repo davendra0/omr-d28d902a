@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   getSettings, saveSettings, addSession, getTodaySessions, getSessions,
-  type PomodoroSettings, type PomodoroSession, DEFAULT_SETTINGS,
+  type PomodoroSettings, type PomodoroSession, DEFAULT_SETTINGS, SUBJECTS,
 } from '@/lib/pomodoroStore';
 
 type Phase = 'focus' | 'short_break' | 'long_break';
@@ -15,6 +15,13 @@ const PomodoroPage = () => {
   const [sessionCount, setSessionCount] = useState(0);
   const [todaySessions, setTodaySessions] = useState<PomodoroSession[]>(getTodaySessions);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // New features
+  const [minimal, setMinimal] = useState(false);
+  const [hideTime, setHideTime] = useState(false);
+  const [sessionLabel, setSessionLabel] = useState('');
+  const [sessionSubject, setSessionSubject] = useState('');
+  const [sessionChapter, setSessionChapter] = useState('');
 
   const totalSeconds = phase === 'focus'
     ? settings.focusMinutes * 60
@@ -30,30 +37,31 @@ const PomodoroPage = () => {
 
   const phaseColor: Record<Phase, string> = {
     focus: 'text-primary',
-    short_break: 'text-success',
+    short_break: 'text-[hsl(var(--success))]',
     long_break: 'text-accent',
   };
 
   const progressColor: Record<Phase, string> = {
     focus: 'stroke-primary',
-    short_break: 'stroke-success',
+    short_break: 'stroke-[hsl(var(--success))]',
     long_break: 'stroke-accent',
   };
 
   const completePhase = useCallback(() => {
     setRunning(false);
-    // Log session
     const session: PomodoroSession = {
       id: crypto.randomUUID(),
       type: phase,
       durationMinutes: phase === 'focus' ? settings.focusMinutes : phase === 'short_break' ? settings.shortBreakMinutes : settings.longBreakMinutes,
       completedAt: Date.now(),
       date: new Date().toISOString().slice(0, 10),
+      label: sessionLabel || undefined,
+      subject: sessionSubject || undefined,
+      chapter: sessionChapter || undefined,
     };
     addSession(session);
     setTodaySessions(getTodaySessions());
 
-    // Determine next phase
     if (phase === 'focus') {
       const newCount = sessionCount + 1;
       setSessionCount(newCount);
@@ -72,7 +80,6 @@ const PomodoroPage = () => {
       if (settings.autoStartFocus) setRunning(true);
     }
 
-    // Sound notification
     try {
       const ctx = new AudioContext();
       const osc = ctx.createOscillator();
@@ -84,7 +91,7 @@ const PomodoroPage = () => {
       osc.start();
       osc.stop(ctx.currentTime + 0.3);
     } catch {}
-  }, [phase, sessionCount, settings]);
+  }, [phase, sessionCount, settings, sessionLabel, sessionSubject, sessionChapter]);
 
   useEffect(() => {
     if (!running) {
@@ -110,9 +117,7 @@ const PomodoroPage = () => {
     setSecondsLeft(settings.focusMinutes * 60);
   };
 
-  const skipPhase = () => {
-    completePhase();
-  };
+  const skipPhase = () => completePhase();
 
   const handleSaveSettings = (newSettings: PomodoroSettings) => {
     saveSettings(newSettings);
@@ -130,15 +135,69 @@ const PomodoroPage = () => {
   const pad = (n: number) => n.toString().padStart(2, '0');
   const progress = 1 - secondsLeft / totalSeconds;
 
-  // Stats
   const todayFocus = todaySessions.filter(s => s.type === 'focus');
   const todayMinutes = todayFocus.reduce((a, s) => a + s.durationMinutes, 0);
 
-  // SVG circle
-  const size = 220;
-  const strokeWidth = 8;
+  const size = minimal ? 280 : 220;
+  const strokeWidth = minimal ? 10 : 8;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
+
+  // Minimal / zen mode
+  if (minimal) {
+    return (
+      <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center gap-6">
+        <button
+          onClick={() => setMinimal(false)}
+          className="absolute top-4 right-4 px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors"
+        >
+          ✕ Exit Zen
+        </button>
+
+        <div className="text-sm font-mono text-muted-foreground">{phaseLabel[phase]}</div>
+
+        {sessionLabel && (
+          <div className="text-xs text-muted-foreground font-mono">📎 {sessionLabel}</div>
+        )}
+
+        <div className="relative">
+          <svg width={size} height={size} className="-rotate-90">
+            <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="hsl(var(--border))" strokeWidth={strokeWidth} />
+            <circle cx={size/2} cy={size/2} r={radius} fill="none" className={progressColor[phase]}
+              strokeWidth={strokeWidth} strokeLinecap="round"
+              strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)}
+              style={{ transition: 'stroke-dashoffset 0.5s ease' }}
+            />
+          </svg>
+          {!hideTime && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className={`text-6xl font-mono font-black ${phaseColor[phase]}`}>
+                {pad(mins)}:{pad(secs)}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex gap-3">
+          <button onClick={() => setRunning(!running)}
+            className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
+            {running ? '⏸ Pause' : '▶ Start'}
+          </button>
+          <button onClick={skipPhase}
+            className="px-4 py-3 border border-border rounded-xl text-sm text-foreground hover:bg-muted transition-colors">
+            ⏭ Skip
+          </button>
+        </div>
+
+        <div className="flex gap-2">
+          <button onClick={() => setHideTime(!hideTime)}
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+            {hideTime ? '👁 Show Time' : '🙈 Hide Time'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
@@ -147,98 +206,100 @@ const PomodoroPage = () => {
           <h1 className="text-2xl font-bold font-mono text-foreground">🍅 Pomodoro</h1>
           <p className="text-xs text-muted-foreground mt-1">Stay focused, take breaks</p>
         </div>
-        <button
-          onClick={() => setShowSettings(!showSettings)}
-          className="px-3 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
-        >
-          ⚙️ Settings
-        </button>
+        <div className="flex gap-2">
+          <button onClick={() => setMinimal(true)}
+            className="px-3 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
+            🧘 Zen
+          </button>
+          <button onClick={() => setShowSettings(!showSettings)}
+            className="px-3 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted transition-colors">
+            ⚙️
+          </button>
+        </div>
       </div>
 
-      {/* Settings panel */}
       {showSettings && (
         <SettingsPanel settings={settings} onSave={handleSaveSettings} onClose={() => setShowSettings(false)} />
       )}
 
+      {/* Session label */}
+      <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+        <h3 className="text-xs font-bold font-mono text-muted-foreground">📎 SESSION LABEL</h3>
+        <input
+          type="text"
+          placeholder="e.g. Electrochemistry revision"
+          value={sessionLabel}
+          onChange={(e) => setSessionLabel(e.target.value)}
+          className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+        />
+        <div className="flex gap-2 flex-wrap">
+          <select value={sessionSubject} onChange={(e) => setSessionSubject(e.target.value)}
+            className="h-8 px-2 border border-border rounded-lg bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary">
+            <option value="">Subject</option>
+            {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <input
+            type="text"
+            placeholder="Chapter (optional)"
+            value={sessionChapter}
+            onChange={(e) => setSessionChapter(e.target.value)}
+            className="h-8 px-2 border border-border rounded-lg bg-background text-foreground text-xs flex-1 min-w-[120px] focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+      </div>
+
       {/* Timer */}
       <div className="flex flex-col items-center gap-4">
-        {/* Phase tabs */}
         <div className="flex gap-1 bg-muted rounded-lg p-1">
           {(['focus', 'short_break', 'long_break'] as Phase[]).map((p) => (
-            <button
-              key={p}
-              onClick={() => {
-                if (!running) {
-                  setPhase(p);
-                  setSecondsLeft(
-                    p === 'focus' ? settings.focusMinutes * 60 :
-                    p === 'short_break' ? settings.shortBreakMinutes * 60 :
-                    settings.longBreakMinutes * 60
-                  );
-                }
-              }}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${
-                phase === p ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'
-              }`}
-            >
+            <button key={p}
+              onClick={() => { if (!running) { setPhase(p); setSecondsLeft(p === 'focus' ? settings.focusMinutes * 60 : p === 'short_break' ? settings.shortBreakMinutes * 60 : settings.longBreakMinutes * 60); } }}
+              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${phase === p ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground'}`}>
               {phaseLabel[p]}
             </button>
           ))}
         </div>
 
-        {/* Circular timer */}
         <div className="relative">
           <svg width={size} height={size} className="-rotate-90">
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              stroke="hsl(var(--border))"
-              strokeWidth={strokeWidth}
-            />
-            <circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              fill="none"
-              className={progressColor[phase]}
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={circumference * (1 - progress)}
+            <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="hsl(var(--border))" strokeWidth={strokeWidth} />
+            <circle cx={size/2} cy={size/2} r={radius} fill="none" className={progressColor[phase]}
+              strokeWidth={strokeWidth} strokeLinecap="round"
+              strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)}
               style={{ transition: 'stroke-dashoffset 0.5s ease' }}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <div className={`text-5xl font-mono font-black ${phaseColor[phase]}`}>
-              {pad(mins)}:{pad(secs)}
-            </div>
+            {!hideTime && (
+              <div className={`text-5xl font-mono font-black ${phaseColor[phase]}`}>
+                {pad(mins)}:{pad(secs)}
+              </div>
+            )}
+            {hideTime && (
+              <div className="text-sm text-muted-foreground font-mono">⏳ in progress</div>
+            )}
             <div className="text-xs text-muted-foreground mt-1 font-mono">
               Session {sessionCount + 1}
             </div>
           </div>
         </div>
 
-        {/* Controls */}
         <div className="flex gap-3">
-          <button
-            onClick={() => setRunning(!running)}
-            className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity"
-          >
+          <button onClick={() => setRunning(!running)}
+            className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
             {running ? '⏸ Pause' : '▶ Start'}
           </button>
-          <button
-            onClick={skipPhase}
-            className="px-4 py-3 border border-border rounded-xl text-sm text-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={skipPhase}
+            className="px-4 py-3 border border-border rounded-xl text-sm text-foreground hover:bg-muted transition-colors">
             ⏭ Skip
           </button>
-          <button
-            onClick={resetTimer}
-            className="px-4 py-3 border border-border rounded-xl text-sm text-foreground hover:bg-muted transition-colors"
-          >
+          <button onClick={resetTimer}
+            className="px-4 py-3 border border-border rounded-xl text-sm text-foreground hover:bg-muted transition-colors">
             ↺ Reset
+          </button>
+          <button onClick={() => setHideTime(!hideTime)}
+            className="px-4 py-3 border border-border rounded-xl text-xs text-muted-foreground hover:bg-muted transition-colors">
+            {hideTime ? '👁' : '🙈'}
           </button>
         </div>
       </div>
@@ -256,15 +317,30 @@ const PomodoroPage = () => {
             <div className="text-xs text-muted-foreground">Minutes</div>
           </div>
           <div>
-            <div className="text-2xl font-mono font-black text-accent">
-              {Math.round(todayMinutes / 60 * 10) / 10}
-            </div>
+            <div className="text-2xl font-mono font-black text-accent">{Math.round(todayMinutes / 60 * 10) / 10}</div>
             <div className="text-xs text-muted-foreground">Hours</div>
           </div>
         </div>
+        {/* Subject breakdown */}
+        {todayFocus.length > 0 && (
+          <div className="pt-2 border-t border-border space-y-1">
+            <div className="text-xs font-mono text-muted-foreground mb-1">By Subject</div>
+            {Object.entries(
+              todayFocus.reduce<Record<string, number>>((acc, s) => {
+                const key = s.subject || 'Unlabeled';
+                acc[key] = (acc[key] || 0) + s.durationMinutes;
+                return acc;
+              }, {})
+            ).map(([subj, mins]) => (
+              <div key={subj} className="flex justify-between text-xs">
+                <span className="text-foreground">{subj}</span>
+                <span className="font-mono text-muted-foreground">{mins}m</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Recent sessions */}
       <RecentSessions />
     </div>
   );
@@ -280,68 +356,46 @@ function SettingsPanel({ settings, onSave, onClose }: {
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-4">
       <h3 className="font-bold font-mono text-foreground text-sm">⚙️ Timer Settings</h3>
-
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs text-muted-foreground">Focus (min)</label>
           <input type="number" min={1} max={120} value={s.focusMinutes}
             onChange={(e) => setS({ ...s, focusMinutes: +e.target.value })}
-            className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+            className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Short Break (min)</label>
           <input type="number" min={1} max={30} value={s.shortBreakMinutes}
             onChange={(e) => setS({ ...s, shortBreakMinutes: +e.target.value })}
-            className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+            className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Long Break (min)</label>
           <input type="number" min={1} max={60} value={s.longBreakMinutes}
             onChange={(e) => setS({ ...s, longBreakMinutes: +e.target.value })}
-            className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+            className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
         <div>
           <label className="text-xs text-muted-foreground">Sessions before long</label>
           <input type="number" min={2} max={10} value={s.sessionsBeforeLong}
             onChange={(e) => setS({ ...s, sessionsBeforeLong: +e.target.value })}
-            className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+            className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
       </div>
-
       <div className="space-y-2">
         <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-          <input type="checkbox" checked={s.autoStartBreaks}
-            onChange={(e) => setS({ ...s, autoStartBreaks: e.target.checked })}
-            className="rounded border-border"
-          />
+          <input type="checkbox" checked={s.autoStartBreaks} onChange={(e) => setS({ ...s, autoStartBreaks: e.target.checked })} className="rounded border-border" />
           Auto-start breaks
         </label>
         <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
-          <input type="checkbox" checked={s.autoStartFocus}
-            onChange={(e) => setS({ ...s, autoStartFocus: e.target.checked })}
-            className="rounded border-border"
-          />
+          <input type="checkbox" checked={s.autoStartFocus} onChange={(e) => setS({ ...s, autoStartFocus: e.target.checked })} className="rounded border-border" />
           Auto-start focus after break
         </label>
       </div>
-
       <div className="flex gap-2">
-        <button onClick={() => onSave(s)}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm">
-          Save
-        </button>
-        <button onClick={() => { onSave(DEFAULT_SETTINGS); }}
-          className="px-4 py-2 border border-border rounded-lg text-xs text-muted-foreground hover:bg-muted">
-          Reset to Default
-        </button>
-        <button onClick={onClose}
-          className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted">
-          Cancel
-        </button>
+        <button onClick={() => onSave(s)} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm">Save</button>
+        <button onClick={() => onSave(DEFAULT_SETTINGS)} className="px-4 py-2 border border-border rounded-lg text-xs text-muted-foreground hover:bg-muted">Reset to Default</button>
+        <button onClick={onClose} className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted">Cancel</button>
       </div>
     </div>
   );
@@ -360,10 +414,12 @@ function RecentSessions() {
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-3">
       <h2 className="font-bold font-mono text-foreground text-sm">🕐 Recent Sessions</h2>
-      <div className="space-y-1 max-h-48 overflow-y-auto">
+      <div className="space-y-1 max-h-64 overflow-y-auto">
         {sessions.map((s) => (
-          <div key={s.id} className="flex items-center justify-between py-1.5 px-2 rounded text-xs hover:bg-muted/50">
+          <div key={s.id} className="flex items-center justify-between py-2 px-2 rounded text-xs hover:bg-muted/50 gap-2">
             <span className="text-foreground font-medium">{typeLabel[s.type]}</span>
+            {s.label && <span className="text-muted-foreground truncate max-w-[120px]" title={s.label}>📎 {s.label}</span>}
+            {s.subject && <span className="text-primary text-[10px] font-mono">{s.subject}</span>}
             <span className="text-muted-foreground font-mono">{s.durationMinutes}m</span>
             <span className="text-muted-foreground font-mono">
               {new Date(s.completedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}

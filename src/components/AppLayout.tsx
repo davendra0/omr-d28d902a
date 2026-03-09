@@ -12,6 +12,8 @@ const navItems = [
   { path: '/omr', label: 'OMR Test', icon: '📝' },
   { path: '/countdown', label: 'Countdowns', icon: '⏳' },
   { path: '/pomodoro', label: 'Pomodoro', icon: '🍅' },
+  { path: '/todos', label: 'Tasks', icon: '✅' },
+  { path: '/notes', label: 'Notes', icon: '📒' },
 ];
 
 const AppLayout = ({ children }: AppLayoutProps) => {
