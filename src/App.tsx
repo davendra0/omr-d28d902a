@@ -16,6 +16,7 @@ import PomodoroPage from "./pages/PomodoroPage";
 import TodoPage from "./pages/TodoPage";
 import NotesPage from "./pages/NotesPage";
 import MistakesPage from "./pages/MistakesPage";
+import SyllabusPage from "./pages/SyllabusPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
