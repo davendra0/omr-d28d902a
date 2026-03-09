@@ -105,8 +105,6 @@ const SetupPage = () => {
             ▶ Start Test
           </button>
         </div>
-      </div>
-
       {/* Past Tests button */}
       {savedTests.length > 0 && (
         <button
