@@ -10,7 +10,7 @@ export interface Note {
   updatedAt: number;
 }
 
-const STORE_KEY = 'mydesk_notes';
+const STORE_KEY = 'workspace_notes';
 
 export const NOTE_TYPES: Record<Note['type'], { label: string; icon: string }> = {
   concept: { label: 'Concept', icon: '💡' },

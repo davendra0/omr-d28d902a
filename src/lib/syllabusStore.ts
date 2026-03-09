@@ -24,7 +24,7 @@ export interface Chapter {
   subtopics: Subtopic[];
 }
 
-const STORE_KEY = 'mydesk_syllabus';
+const STORE_KEY = 'workspace_syllabus';
 
 // Pre-populated chapters based on user input
 const INITIAL_CHAPTERS: Omit<Chapter, 'id' | 'subtopics' | 'completed' | 'priority'>[] = [

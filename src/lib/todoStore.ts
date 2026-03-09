@@ -12,8 +12,8 @@ export interface Todo {
   completedAt?: number;
 }
 
-const STORE_KEY = 'mydesk_todos';
-const TAGS_KEY = 'mydesk_todo_tags';
+const STORE_KEY = 'workspace_todos';
+const TAGS_KEY = 'workspace_todo_tags';
 
 export const COLORS: Record<string, string> = {
   none: 'transparent',

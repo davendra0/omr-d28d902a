@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import DarkModeToggle from '@/components/DarkModeToggle';
+import { getWorkspaceName, setWorkspaceName } from '@/lib/workspaceStore';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -21,6 +22,9 @@ const navItems = [
 const AppLayout = ({ children }: AppLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [workspaceName, setName] = useState(getWorkspaceName);
+  const [editingName, setEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -41,10 +45,30 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         )}
       >
         <div className="p-4 border-b border-border flex items-center justify-between">
-          <NavLink to="/" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
-            <span className="text-xl">⚡</span>
-            {!collapsed && <span className="font-mono font-bold text-foreground text-lg tracking-tight">MyDesk</span>}
-          </NavLink>
+          {editingName && !collapsed ? (
+            <form onSubmit={(e) => { e.preventDefault(); setWorkspaceName(tempName); setName(tempName.trim() || 'Workspace'); setEditingName(false); }} className="flex items-center gap-1 w-full">
+              <input
+                autoFocus
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                onBlur={() => { setWorkspaceName(tempName); setName(tempName.trim() || 'Workspace'); setEditingName(false); }}
+                className="w-full h-7 px-2 border border-border rounded bg-background text-foreground text-sm font-mono font-bold focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+            </form>
+          ) : (
+            <NavLink to="/" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
+              <span className="text-xl">⚡</span>
+              {!collapsed && (
+                <span
+                  className="font-mono font-bold text-foreground text-lg tracking-tight cursor-pointer hover:text-primary transition-colors"
+                  onDoubleClick={(e) => { e.preventDefault(); setTempName(workspaceName); setEditingName(true); }}
+                  title="Double-click to rename"
+                >
+                  {workspaceName}
+                </span>
+              )}
+            </NavLink>
+          )}
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
@@ -107,7 +131,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
               <path d="M3 5h14M3 10h14M3 15h14" />
             </svg>
           </button>
-          <span className="font-mono font-bold text-foreground text-sm">⚡ MyDesk</span>
+          <span className="font-mono font-bold text-foreground text-sm">⚡ {workspaceName}</span>
         </header>
 
         <main className="flex-1">
