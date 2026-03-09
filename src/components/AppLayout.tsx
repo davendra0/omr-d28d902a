@@ -131,7 +131,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
               <path d="M3 5h14M3 10h14M3 15h14" />
             </svg>
           </button>
-          <span className="font-mono font-bold text-foreground text-sm">⚡ MyDesk</span>
+          <span className="font-mono font-bold text-foreground text-sm">⚡ {workspaceName}</span>
         </header>
 
         <main className="flex-1">
