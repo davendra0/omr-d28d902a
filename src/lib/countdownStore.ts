@@ -6,7 +6,7 @@ export interface Countdown {
   createdAt: number;
 }
 
-const STORAGE_KEY = 'mydesk_countdowns';
+const STORAGE_KEY = 'workspace_countdowns';
 
 export function getCountdowns(): Countdown[] {
   try {

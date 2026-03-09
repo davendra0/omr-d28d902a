@@ -13,7 +13,7 @@ export interface QuestionAnnotation {
   updatedAt: number;
 }
 
-const STORE_KEY = 'mydesk_question_annotations';
+const STORE_KEY = 'workspace_question_annotations';
 
 export const MISTAKE_TYPES: Record<MistakeType, { label: string; icon: string; color: string }> = {
   silly: { label: 'Silly Mistake', icon: '🤦', color: 'text-accent' },
