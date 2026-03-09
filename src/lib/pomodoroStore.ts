@@ -13,6 +13,9 @@ export interface PomodoroSession {
   durationMinutes: number;
   completedAt: number;
   date: string; // YYYY-MM-DD
+  label?: string; // e.g. "Physics - Electrochem"
+  subject?: string;
+  chapter?: string;
 }
 
 const SETTINGS_KEY = 'mydesk_pomodoro_settings';
@@ -26,6 +29,12 @@ export const DEFAULT_SETTINGS: PomodoroSettings = {
   autoStartBreaks: false,
   autoStartFocus: false,
 };
+
+export const SUBJECTS = [
+  'Physics', 'Chemistry', 'Biology', 'Mathematics',
+  'English', 'History', 'Geography', 'Computer Science',
+  'General', 'Other',
+];
 
 export function getSettings(): PomodoroSettings {
   try {
