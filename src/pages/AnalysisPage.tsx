@@ -547,16 +547,23 @@ function QuestionTable({
                   )}
                 </div>
                 {isAnnotating && (
-                  <AnnotationEditor
-                    testId={testId}
-                    testName={testName}
-                    questionNo={item.questionNo}
-                    selected={item.selected}
-                    correct={item.correct}
-                    existing={ann}
-                    onSave={() => { onAnnotationSaved(); setAnnotatingQ(null); }}
-                    onCancel={() => setAnnotatingQ(null)}
-                  />
+                  <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-card w-full max-w-lg rounded-xl border border-border shadow-2xl overflow-hidden relative animate-in zoom-in-95 duration-200">
+                      <div className="absolute top-2 right-2 z-10">
+                        <button onClick={() => setAnnotatingQ(null)} className="p-2 text-muted-foreground hover:text-foreground">✕</button>
+                      </div>
+                      <AnnotationEditor
+                        testId={testId}
+                        testName={testName}
+                        questionNo={item.questionNo}
+                        selected={item.selected}
+                        correct={item.correct}
+                        existing={ann}
+                        onSave={() => { onAnnotationSaved(); setAnnotatingQ(null); }}
+                        onCancel={() => setAnnotatingQ(null)}
+                      />
+                    </div>
+                  </div>
                 )}
               </div>
             );

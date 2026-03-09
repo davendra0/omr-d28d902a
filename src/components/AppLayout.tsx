@@ -15,6 +15,7 @@ const navItems = [
   { path: '/todos', label: 'Tasks', icon: '✅' },
   { path: '/notes', label: 'Notes', icon: '📒' },
   { path: '/mistakes', label: 'Mistakes', icon: '🔍' },
+  { path: '/syllabus', label: 'Syllabus', icon: '📚' },
 ];
 
 const AppLayout = ({ children }: AppLayoutProps) => {
