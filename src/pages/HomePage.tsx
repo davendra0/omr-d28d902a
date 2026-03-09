@@ -2,11 +2,17 @@ import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { getSavedTests } from '@/lib/testHistory';
 import { getCountdowns, type Countdown } from '@/lib/countdownStore';
+import { getTodaySessions } from '@/lib/pomodoroStore';
+import { getTodos } from '@/lib/todoStore';
+import { getAllMistakes } from '@/lib/mistakeStore';
 
 const HomePage = () => {
   const navigate = useNavigate();
   const [testCount, setTestCount] = useState(0);
   const [nextCountdown, setNextCountdown] = useState<Countdown | null>(null);
+  const [todayFocus, setTodayFocus] = useState(0);
+  const [tasksDone, setTasksDone] = useState({ done: 0, total: 0 });
+  const [mistakeCount, setMistakeCount] = useState(0);
 
   useEffect(() => {
     setTestCount(getSavedTests().length);
@@ -15,6 +21,11 @@ const HomePage = () => {
       cds.sort((a, b) => new Date(a.targetDate).getTime() - new Date(b.targetDate).getTime());
       setNextCountdown(cds[0]);
     }
+    const sessions = getTodaySessions().filter(s => s.type === 'focus');
+    setTodayFocus(sessions.reduce((a, s) => a + s.durationMinutes, 0));
+    const todos = getTodos();
+    setTasksDone({ done: todos.filter(t => t.completed).length, total: todos.length });
+    setMistakeCount(getAllMistakes().length);
   }, []);
 
   const daysUntil = (date: string) => {
@@ -24,28 +35,40 @@ const HomePage = () => {
 
   const tools = [
     {
-      icon: '📝',
-      title: 'OMR Test',
+      icon: '📝', title: 'OMR Test',
       description: 'Practice with timed OMR-style tests',
       detail: testCount > 0 ? `${testCount} saved test${testCount > 1 ? 's' : ''}` : 'Start a new test',
-      path: '/omr',
-      accent: 'from-primary/20 to-primary/5',
+      path: '/omr', accent: 'from-primary/20 to-primary/5',
     },
     {
-      icon: '⏳',
-      title: 'Countdowns',
+      icon: '⏳', title: 'Countdowns',
       description: 'Track days until important events',
       detail: nextCountdown ? `${daysUntil(nextCountdown.targetDate)} days to ${nextCountdown.title}` : 'Add your first countdown',
-      path: '/countdown',
-      accent: 'from-accent/20 to-accent/5',
+      path: '/countdown', accent: 'from-accent/20 to-accent/5',
     },
     {
-      icon: '🍅',
-      title: 'Pomodoro',
+      icon: '🍅', title: 'Pomodoro',
       description: 'Focus timer with break management',
-      detail: 'Stay productive',
-      path: '/pomodoro',
-      accent: 'from-destructive/20 to-destructive/5',
+      detail: todayFocus > 0 ? `${todayFocus}m focused today` : 'Start a focus session',
+      path: '/pomodoro', accent: 'from-destructive/20 to-destructive/5',
+    },
+    {
+      icon: '✅', title: 'Tasks',
+      description: 'Manage your to-do list with tags & priorities',
+      detail: tasksDone.total > 0 ? `${tasksDone.done}/${tasksDone.total} completed` : 'Add your first task',
+      path: '/todos', accent: 'from-[hsl(142,71%,40%)]/20 to-[hsl(142,71%,40%)]/5',
+    },
+    {
+      icon: '📒', title: 'Notes',
+      description: 'Concepts, mistakes & formula notes',
+      detail: 'Build your knowledge base',
+      path: '/notes', accent: 'from-[hsl(262,83%,58%)]/20 to-[hsl(262,83%,58%)]/5',
+    },
+    {
+      icon: '🔍', title: 'Mistake Tracker',
+      description: 'Review wrong questions across all tests',
+      detail: mistakeCount > 0 ? `${mistakeCount} mistakes tracked` : 'Annotate mistakes in analysis',
+      path: '/mistakes', accent: 'from-destructive/15 to-destructive/5',
     },
   ];
 
@@ -58,25 +81,39 @@ const HomePage = () => {
         <p className="text-muted-foreground text-sm">Your personal productivity workspace</p>
       </div>
 
-      {/* Quick countdown banner */}
-      {nextCountdown && (
-        <div className="bg-gradient-to-r from-accent/15 to-transparent border border-accent/20 rounded-xl p-4 flex items-center gap-4">
-          <div className="text-3xl font-mono font-black text-accent">{daysUntil(nextCountdown.targetDate)}</div>
-          <div>
-            <div className="text-sm font-semibold text-foreground">days until {nextCountdown.title}</div>
-            <div className="text-xs text-muted-foreground">{new Date(nextCountdown.targetDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+      {/* Quick stats banner */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {nextCountdown && (
+          <div className="bg-gradient-to-r from-accent/15 to-transparent border border-accent/20 rounded-xl p-3 col-span-2 sm:col-span-1">
+            <div className="text-2xl font-mono font-black text-accent">{daysUntil(nextCountdown.targetDate)}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">days to {nextCountdown.title}</div>
           </div>
-        </div>
-      )}
+        )}
+        {todayFocus > 0 && (
+          <div className="bg-card border border-border rounded-xl p-3">
+            <div className="text-2xl font-mono font-black text-primary">{todayFocus}m</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">focused today</div>
+          </div>
+        )}
+        {tasksDone.total > 0 && (
+          <div className="bg-card border border-border rounded-xl p-3">
+            <div className="text-2xl font-mono font-black text-[hsl(var(--success))]">{tasksDone.done}/{tasksDone.total}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">tasks done</div>
+          </div>
+        )}
+        {mistakeCount > 0 && (
+          <div className="bg-card border border-border rounded-xl p-3">
+            <div className="text-2xl font-mono font-black text-destructive">{mistakeCount}</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">mistakes tracked</div>
+          </div>
+        )}
+      </div>
 
       {/* Tool cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {tools.map((tool) => (
-          <button
-            key={tool.path}
-            onClick={() => navigate(tool.path)}
-            className="text-left bg-card border border-border rounded-xl p-5 hover:border-primary/40 hover:shadow-md transition-all group"
-          >
+          <button key={tool.path} onClick={() => navigate(tool.path)}
+            className="text-left bg-card border border-border rounded-xl p-5 hover:border-primary/40 hover:shadow-md transition-all group">
             <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${tool.accent} flex items-center justify-center text-2xl mb-4`}>
               {tool.icon}
             </div>
