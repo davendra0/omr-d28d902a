@@ -13,6 +13,8 @@ import AnalysisPage from "./pages/AnalysisPage";
 import HistoryPage from "./pages/HistoryPage";
 import CountdownPage from "./pages/CountdownPage";
 import PomodoroPage from "./pages/PomodoroPage";
+import TodoPage from "./pages/TodoPage";
+import NotesPage from "./pages/NotesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
