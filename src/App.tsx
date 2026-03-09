@@ -32,6 +32,8 @@ const App = () => (
           <Route path="/omr/history" element={<AppLayout><HistoryPage /></AppLayout>} />
           <Route path="/countdown" element={<AppLayout><CountdownPage /></AppLayout>} />
           <Route path="/pomodoro" element={<AppLayout><PomodoroPage /></AppLayout>} />
+          <Route path="/todos" element={<AppLayout><TodoPage /></AppLayout>} />
+          <Route path="/notes" element={<AppLayout><NotesPage /></AppLayout>} />
           
           {/* Full-screen pages (no sidebar during test) */}
           <Route path="/test" element={<TestPage />} />
