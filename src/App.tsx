@@ -35,6 +35,7 @@ const App = () => (
           <Route path="/pomodoro" element={<AppLayout><PomodoroPage /></AppLayout>} />
           <Route path="/todos" element={<AppLayout><TodoPage /></AppLayout>} />
           <Route path="/notes" element={<AppLayout><NotesPage /></AppLayout>} />
+          <Route path="/mistakes" element={<AppLayout><MistakesPage /></AppLayout>} />
           
           {/* Full-screen pages (no sidebar during test) */}
           <Route path="/test" element={<TestPage />} />
