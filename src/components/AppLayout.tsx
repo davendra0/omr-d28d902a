@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import DarkModeToggle from '@/components/DarkModeToggle';
+import { getWorkspaceName, setWorkspaceName } from '@/lib/workspaceStore';
 
 interface AppLayoutProps {
   children: React.ReactNode;
