@@ -63,6 +63,16 @@ export function addSession(session: PomodoroSession) {
   localStorage.setItem(SESSIONS_KEY, JSON.stringify(all));
 }
 
+export function deleteSession(id: string) {
+  const all = getSessions().filter(s => s.id !== id);
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(all));
+}
+
+export function updateSession(id: string, updates: Partial<Omit<PomodoroSession, 'id'>>) {
+  const all = getSessions().map(s => s.id === id ? { ...s, ...updates } : s);
+  localStorage.setItem(SESSIONS_KEY, JSON.stringify(all));
+}
+
 export function getTodaySessions(): PomodoroSession[] {
   const today = new Date().toISOString().slice(0, 10);
   return getSessions().filter(s => s.date === today);

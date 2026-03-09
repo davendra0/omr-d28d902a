@@ -402,8 +402,56 @@ function SettingsPanel({ settings, onSave, onClose }: {
 }
 
 function RecentSessions() {
-  const sessions = getSessions().slice(-20).reverse();
-  if (sessions.length === 0) return null;
+  const [sessions, setSessions] = useState(() => getSessions().slice(-20).reverse());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<Partial<PomodoroSession>>({});
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [addForm, setAddForm] = useState<Partial<PomodoroSession>>({
+    type: 'focus',
+    durationMinutes: 25,
+    label: '',
+    subject: '',
+    chapter: '',
+  });
+
+  const refreshSessions = () => setSessions(getSessions().slice(-20).reverse());
+
+  const handleDelete = (id: string) => {
+    if (confirm('Delete this session?')) {
+      deleteSession(id);
+      refreshSessions();
+    }
+  };
+
+  const handleEdit = (s: PomodoroSession) => {
+    setEditingId(s.id);
+    setEditForm({ ...s });
+  };
+
+  const handleSaveEdit = () => {
+    if (editingId && editForm) {
+      updateSession(editingId, editForm);
+      setEditingId(null);
+      refreshSessions();
+    }
+  };
+
+  const handleAddSession = () => {
+    const newSession: PomodoroSession = {
+      id: crypto.randomUUID(),
+      type: addForm.type as 'focus' | 'short_break' | 'long_break',
+      durationMinutes: addForm.durationMinutes || 25,
+      completedAt: Date.now(),
+      date: new Date().toISOString().slice(0, 10),
+      label: addForm.label || undefined,
+      subject: addForm.subject || undefined,
+      chapter: addForm.chapter || undefined,
+    };
+    addSession(newSession);
+    setShowAddForm(false);
+    setAddForm({ type: 'focus', durationMinutes: 25, label: '', subject: '', chapter: '' });
+    refreshSessions();
+  };
 
   const typeLabel: Record<string, string> = {
     focus: '🎯 Focus',
@@ -413,20 +461,123 @@ function RecentSessions() {
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-      <h2 className="font-bold font-mono text-foreground text-sm">🕐 Recent Sessions</h2>
-      <div className="space-y-1 max-h-64 overflow-y-auto">
-        {sessions.map((s) => (
-          <div key={s.id} className="flex items-center justify-between py-2 px-2 rounded text-xs hover:bg-muted/50 gap-2">
-            <span className="text-foreground font-medium">{typeLabel[s.type]}</span>
-            {s.label && <span className="text-muted-foreground truncate max-w-[120px]" title={s.label}>📎 {s.label}</span>}
-            {s.subject && <span className="text-primary text-[10px] font-mono">{s.subject}</span>}
-            <span className="text-muted-foreground font-mono">{s.durationMinutes}m</span>
-            <span className="text-muted-foreground font-mono">
-              {new Date(s.completedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-            </span>
-          </div>
-        ))}
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold font-mono text-foreground text-sm">🕐 Recent Sessions</h2>
+        <button
+          onClick={() => setShowAddForm(!showAddForm)}
+          className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded-lg hover:opacity-90"
+        >
+          + Add
+        </button>
       </div>
+
+      {showAddForm && (
+        <div className="p-3 bg-muted rounded-lg space-y-2 border border-border">
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={addForm.type}
+              onChange={(e) => setAddForm({ ...addForm, type: e.target.value as any })}
+              className="h-8 px-2 border border-border rounded-lg bg-background text-foreground text-xs"
+            >
+              <option value="focus">🎯 Focus</option>
+              <option value="short_break">☕ Short Break</option>
+              <option value="long_break">🌿 Long Break</option>
+            </select>
+            <input
+              type="number"
+              placeholder="Minutes"
+              value={addForm.durationMinutes}
+              onChange={(e) => setAddForm({ ...addForm, durationMinutes: +e.target.value })}
+              className="h-8 px-2 border border-border rounded-lg bg-background text-foreground text-xs"
+            />
+          </div>
+          <input
+            type="text"
+            placeholder="Label (optional)"
+            value={addForm.label}
+            onChange={(e) => setAddForm({ ...addForm, label: e.target.value })}
+            className="w-full h-8 px-2 border border-border rounded-lg bg-background text-foreground text-xs"
+          />
+          <div className="flex gap-2">
+            <select
+              value={addForm.subject}
+              onChange={(e) => setAddForm({ ...addForm, subject: e.target.value })}
+              className="h-8 px-2 border border-border rounded-lg bg-background text-foreground text-xs flex-1"
+            >
+              <option value="">Subject</option>
+              {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <input
+              type="text"
+              placeholder="Chapter"
+              value={addForm.chapter}
+              onChange={(e) => setAddForm({ ...addForm, chapter: e.target.value })}
+              className="h-8 px-2 border border-border rounded-lg bg-background text-foreground text-xs flex-1"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleAddSession} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold">Save</button>
+            <button onClick={() => setShowAddForm(false)} className="px-3 py-1.5 border border-border rounded-lg text-xs text-muted-foreground">Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {sessions.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No sessions yet</p>
+      ) : (
+        <div className="space-y-1 max-h-64 overflow-y-auto">
+          {sessions.map((s) => (
+            <div key={s.id}>
+              {editingId === s.id ? (
+                <div className="p-2 bg-muted rounded-lg space-y-2 border border-border">
+                  <div className="grid grid-cols-2 gap-2">
+                    <select
+                      value={editForm.type}
+                      onChange={(e) => setEditForm({ ...editForm, type: e.target.value as any })}
+                      className="h-7 px-2 border border-border rounded bg-background text-foreground text-xs"
+                    >
+                      <option value="focus">🎯 Focus</option>
+                      <option value="short_break">☕ Short Break</option>
+                      <option value="long_break">🌿 Long Break</option>
+                    </select>
+                    <input
+                      type="number"
+                      value={editForm.durationMinutes}
+                      onChange={(e) => setEditForm({ ...editForm, durationMinutes: +e.target.value })}
+                      className="h-7 px-2 border border-border rounded bg-background text-foreground text-xs"
+                    />
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Label"
+                    value={editForm.label || ''}
+                    onChange={(e) => setEditForm({ ...editForm, label: e.target.value })}
+                    className="w-full h-7 px-2 border border-border rounded bg-background text-foreground text-xs"
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={handleSaveEdit} className="px-2 py-1 bg-primary text-primary-foreground rounded text-xs">Save</button>
+                    <button onClick={() => setEditingId(null)} className="px-2 py-1 border border-border rounded text-xs text-muted-foreground">Cancel</button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between py-2 px-2 rounded text-xs hover:bg-muted/50 gap-2 group">
+                  <span className="text-foreground font-medium">{typeLabel[s.type]}</span>
+                  {s.label && <span className="text-muted-foreground truncate max-w-[100px]" title={s.label}>📎 {s.label}</span>}
+                  {s.subject && <span className="text-primary text-[10px] font-mono">{s.subject}</span>}
+                  <span className="text-muted-foreground font-mono">{s.durationMinutes}m</span>
+                  <span className="text-muted-foreground font-mono">
+                    {new Date(s.completedAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => handleEdit(s)} className="px-1.5 py-0.5 text-[10px] border border-border rounded hover:bg-muted">✏️</button>
+                    <button onClick={() => handleDelete(s.id)} className="px-1.5 py-0.5 text-[10px] border border-destructive/50 text-destructive rounded hover:bg-destructive/10">🗑</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
