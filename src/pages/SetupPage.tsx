@@ -50,15 +50,11 @@ const SetupPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-6 bg-background">
-      <div className="absolute top-4 right-4">
-        <DarkModeToggle />
+    <div className="p-6 max-w-md mx-auto space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold font-mono tracking-tight text-foreground">📝 OMR Test</h1>
+        <p className="text-muted-foreground mt-1 text-sm">Configure your test and start</p>
       </div>
-      <div className="w-full max-w-md space-y-8 mt-8">
-        <div className="text-center">
-          <h1 className="text-3xl font-bold font-mono tracking-tight text-foreground">OMR Test</h1>
-          <p className="text-muted-foreground mt-2 text-sm">Configure your test and start</p>
-        </div>
 
         <div className="space-y-5 bg-card border border-border rounded-lg p-6">
           <div>
