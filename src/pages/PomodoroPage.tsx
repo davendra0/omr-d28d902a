@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  getSettings, saveSettings, addSession, getTodaySessions, getSessions,
+  getSettings, saveSettings, addSession, deleteSession, updateSession, getTodaySessions, getSessions,
   type PomodoroSettings, type PomodoroSession, DEFAULT_SETTINGS, SUBJECTS,
 } from '@/lib/pomodoroStore';
 
