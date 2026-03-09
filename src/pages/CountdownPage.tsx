@@ -11,6 +11,7 @@ const STYLES: { value: Countdown['style']; label: string }[] = [
 const CountdownPage = () => {
   const [countdowns, setCountdowns] = useState<Countdown[]>([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [style, setStyle] = useState<Countdown['style']>('bold');
@@ -36,6 +37,28 @@ const CountdownPage = () => {
     setTitle('');
     setDate('');
     setShowAdd(false);
+  };
+
+  const handleEdit = (cd: Countdown) => {
+    setEditingId(cd.id);
+    setTitle(cd.title);
+    setDate(cd.targetDate);
+    setStyle(cd.style);
+  };
+
+  const handleSaveEdit = () => {
+    if (!editingId || !title.trim() || !date) return;
+    updateCountdown(editingId, { title: title.trim(), targetDate: date, style });
+    setCountdowns(getCountdowns());
+    setEditingId(null);
+    setTitle('');
+    setDate('');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setTitle('');
+    setDate('');
   };
 
   const handleDelete = (id: string) => {
@@ -71,7 +94,6 @@ const CountdownPage = () => {
     outline: 'text-primary',
   };
 
-  // Sort: upcoming first, then passed
   const sorted = [...countdowns].sort((a, b) => {
     const aT = new Date(a.targetDate).getTime();
     const bT = new Date(b.targetDate).getTime();
@@ -88,64 +110,41 @@ const CountdownPage = () => {
           <h1 className="text-2xl font-bold font-mono text-foreground">⏳ Countdowns</h1>
           <p className="text-xs text-muted-foreground mt-1">Track days until important events</p>
         </div>
-        <button
-          onClick={() => setShowAdd(!showAdd)}
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 transition-opacity"
-        >
+        <button onClick={() => { setShowAdd(!showAdd); setEditingId(null); }}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 transition-opacity">
           + Add
         </button>
       </div>
 
-      {/* Add form */}
-      {showAdd && (
+      {/* Add / Edit form */}
+      {(showAdd || editingId) && (
         <div className="bg-card border border-border rounded-xl p-4 space-y-3">
-          <input
-            type="text"
-            placeholder="Event name (e.g. JEE Mains)"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="w-full h-10 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full h-10 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+          <h3 className="text-sm font-bold font-mono text-foreground">{editingId ? '✏️ Edit Countdown' : '➕ New Countdown'}</h3>
+          <input type="text" placeholder="Event name (e.g. JEE Mains)" value={title} onChange={(e) => setTitle(e.target.value)}
+            className="w-full h-10 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
+            className="w-full h-10 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
           <div className="flex gap-2 flex-wrap">
             {STYLES.map((s) => (
-              <button
-                key={s.value}
-                onClick={() => setStyle(s.value)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                  style === s.value
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
-                }`}
-              >
+              <button key={s.value} onClick={() => setStyle(s.value)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${style === s.value ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'}`}>
                 {s.label}
               </button>
             ))}
           </div>
           <div className="flex gap-2">
-            <button
-              onClick={handleAdd}
-              disabled={!title.trim() || !date}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 disabled:opacity-40"
-            >
-              Save
+            <button onClick={editingId ? handleSaveEdit : handleAdd} disabled={!title.trim() || !date}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 disabled:opacity-40">
+              {editingId ? 'Save Changes' : 'Save'}
             </button>
-            <button
-              onClick={() => setShowAdd(false)}
-              className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted"
-            >
+            <button onClick={editingId ? handleCancelEdit : () => setShowAdd(false)}
+              className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted">
               Cancel
             </button>
           </div>
         </div>
       )}
 
-      {/* Countdown cards */}
       {sorted.length === 0 && !showAdd && (
         <div className="text-center py-16 text-muted-foreground">
           <div className="text-4xl mb-3">⏳</div>
@@ -157,31 +156,16 @@ const CountdownPage = () => {
         {sorted.map((cd) => {
           const { days, hours, minutes, passed } = getDaysHours(cd.targetDate);
           return (
-            <div
-              key={cd.id}
-              className={`rounded-xl p-5 transition-all ${styleClasses[cd.style]} ${passed ? 'opacity-50' : ''}`}
-            >
+            <div key={cd.id} className={`rounded-xl p-5 transition-all ${styleClasses[cd.style]} ${passed ? 'opacity-50' : ''}`}>
               <div className="flex items-start justify-between">
                 <div className="font-bold text-foreground text-sm">{cd.title}</div>
                 <div className="flex gap-1">
-                  {/* Style cycle */}
-                  <button
-                    onClick={() => {
-                      const idx = STYLES.findIndex(s => s.value === cd.style);
-                      handleStyleChange(cd.id, STYLES[(idx + 1) % STYLES.length].value);
-                    }}
-                    className="text-muted-foreground hover:text-primary text-xs p-1"
-                    title="Change style"
-                  >
-                    🎨
-                  </button>
-                  <button
-                    onClick={() => handleDelete(cd.id)}
-                    className="text-muted-foreground hover:text-destructive text-xs p-1"
-                    title="Delete"
-                  >
-                    🗑
-                  </button>
+                  <button onClick={() => handleEdit(cd)} className="text-muted-foreground hover:text-primary text-xs p-1" title="Edit">✏️</button>
+                  <button onClick={() => {
+                    const idx = STYLES.findIndex(s => s.value === cd.style);
+                    handleStyleChange(cd.id, STYLES[(idx + 1) % STYLES.length].value);
+                  }} className="text-muted-foreground hover:text-primary text-xs p-1" title="Change style">🎨</button>
+                  <button onClick={() => handleDelete(cd.id)} className="text-muted-foreground hover:text-destructive text-xs p-1" title="Delete">🗑</button>
                 </div>
               </div>
 

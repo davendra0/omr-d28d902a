@@ -14,6 +14,7 @@ const navItems = [
   { path: '/pomodoro', label: 'Pomodoro', icon: '🍅' },
   { path: '/todos', label: 'Tasks', icon: '✅' },
   { path: '/notes', label: 'Notes', icon: '📒' },
+  { path: '/mistakes', label: 'Mistakes', icon: '🔍' },
 ];
 
 const AppLayout = ({ children }: AppLayoutProps) => {
