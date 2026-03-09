@@ -18,8 +18,8 @@ export interface PomodoroSession {
   chapter?: string;
 }
 
-const SETTINGS_KEY = 'mydesk_pomodoro_settings';
-const SESSIONS_KEY = 'mydesk_pomodoro_sessions';
+const SETTINGS_KEY = 'workspace_pomodoro_settings';
+const SESSIONS_KEY = 'workspace_pomodoro_sessions';
 
 export const DEFAULT_SETTINGS: PomodoroSettings = {
   focusMinutes: 25,
