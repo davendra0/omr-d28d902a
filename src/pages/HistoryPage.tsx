@@ -130,6 +130,7 @@ const HistoryPage = () => {
             })}
           </div>
         )}
+    </div>
   );
 };
 
