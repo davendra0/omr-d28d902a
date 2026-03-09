@@ -109,14 +109,12 @@ const SetupPage = () => {
 
       {/* Past Tests button */}
       {savedTests.length > 0 && (
-        <div className="w-full max-w-md mt-8">
-          <button
-            onClick={() => navigate('/history')}
-            className="w-full h-12 border-2 border-border rounded-lg font-bold font-mono text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2"
-          >
-            📋 Past Tests ({savedTests.length})
-          </button>
-        </div>
+        <button
+          onClick={() => navigate('/omr/history')}
+          className="w-full h-12 border-2 border-border rounded-lg font-bold font-mono text-foreground hover:bg-muted transition-colors flex items-center justify-center gap-2"
+        >
+          📋 Past Tests ({savedTests.length})
+        </button>
       )}
     </div>
   );
