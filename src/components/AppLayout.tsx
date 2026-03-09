@@ -22,6 +22,9 @@ const navItems = [
 const AppLayout = ({ children }: AppLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [workspaceName, setName] = useState(getWorkspaceName);
+  const [editingName, setEditingName] = useState(false);
+  const [tempName, setTempName] = useState('');
 
   return (
     <div className="min-h-screen bg-background flex">
