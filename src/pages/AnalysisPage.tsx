@@ -672,6 +672,31 @@ function AnnotationEditor({
         />
       </div>
 
+      {/* Tags */}
+      <div>
+        <label className="text-[10px] text-muted-foreground font-bold">TAGS</label>
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {tags.map(tag => (
+            <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[11px] font-mono font-bold">
+              #{tag}
+              <button onClick={() => setTags(tags.filter(t => t !== tag))} className="hover:text-destructive">×</button>
+            </span>
+          ))}
+          <input
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) { e.preventDefault(); addTag(tagInput); }
+              if (e.key === 'Backspace' && !tagInput && tags.length) setTags(tags.slice(0, -1));
+            }}
+            onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
+            placeholder="Add tags (e.g. trigonometry, vectors)..."
+            className="flex-1 min-w-[120px] h-7 px-2 bg-transparent text-foreground text-[11px] font-mono focus:outline-none"
+          />
+        </div>
+      </div>
+
       {/* Image */}
       <div>
         <label className="text-[10px] text-muted-foreground font-bold">QUESTION IMAGE</label>

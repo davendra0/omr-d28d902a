@@ -103,10 +103,14 @@ const MistakesPage = () => {
                     <span className="text-[hsl(var(--success))] font-mono text-xs">{ann.correct}</span>
                     {ann.imageData && <span className="text-xs">🖼</span>}
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 flex gap-2">
+                  <div className="text-[10px] text-muted-foreground mt-0.5 flex gap-2 flex-wrap">
                     <span className="font-mono">{ann.testName}</span>
                     <span>·</span>
                     <span className={meta.color}>{meta.label}</span>
+                    {(ann.tags || []).map(tag => (
+                      <button key={tag} onClick={(e) => { e.stopPropagation(); setFilterTag(tag); }}
+                        className="text-primary font-mono hover:underline">#{tag}</button>
+                    ))}
                   </div>
                 </div>
                 <span className="text-xs text-muted-foreground">{isExpanded ? '🔼' : '🔽'}</span>
