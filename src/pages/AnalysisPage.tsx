@@ -507,7 +507,7 @@ function QuestionTable({
         </div>
       </div>
       <p className="px-4 py-2 text-[10px] text-muted-foreground bg-accent/5 border-b border-border">
-        💡 Click on any wrong question to categorize the mistake, add notes, or paste a question image
+        💡 Click on any question to annotate — add notes, tags, categorize mistakes, or paste a question image
       </p>
       {sorted.length === 0 ? (
         <div className="p-6 text-center text-sm text-muted-foreground">No questions match this filter</div>
