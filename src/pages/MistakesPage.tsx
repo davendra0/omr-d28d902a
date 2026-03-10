@@ -12,17 +12,19 @@ const MistakesPage = () => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const testNames = useMemo(() => [...new Set(annotations.map(a => a.testName))], [annotations]);
+  const allTags = useMemo(() => [...new Set(annotations.flatMap(a => a.tags || []))].sort(), [annotations]);
 
   const filtered = useMemo(() => {
     let list = annotations;
     if (filterType) list = list.filter(a => a.mistakeType === filterType);
     if (filterTest) list = list.filter(a => a.testName === filterTest);
+    if (filterTag) list = list.filter(a => (a.tags || []).includes(filterTag));
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      list = list.filter(a => a.notes.toLowerCase().includes(q) || a.testName.toLowerCase().includes(q));
+      list = list.filter(a => a.notes.toLowerCase().includes(q) || a.testName.toLowerCase().includes(q) || (a.tags || []).some(t => t.includes(q)));
     }
     return list;
-  }, [annotations, filterType, filterTest, searchQuery]);
+  }, [annotations, filterType, filterTest, filterTag, searchQuery]);
 
   const typeStats = (Object.entries(MISTAKE_TYPES) as [MistakeType, typeof MISTAKE_TYPES[MistakeType]][]).map(([type, meta]) => ({
     type, ...meta,
