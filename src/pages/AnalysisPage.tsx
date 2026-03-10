@@ -519,9 +519,7 @@ function QuestionTable({
             return (
               <div key={item.questionNo}>
                 <div
-                  onClick={() => {
-                    if (item.isWrong || ann) setAnnotatingQ(isAnnotating ? null : item.questionNo);
-                  }}
+                  onClick={() => setAnnotatingQ(isAnnotating ? null : item.questionNo)}
                   className={`flex items-center gap-3 px-4 py-2.5 border-b border-border/30 cursor-pointer hover:bg-muted/30 transition-colors ${
                     item.isCorrect ? 'bg-[hsl(var(--success))]/5' : item.isWrong ? 'bg-destructive/5' : ''
                   } ${idx % 2 !== 0 ? 'bg-muted/10' : ''}`}
