@@ -612,6 +612,12 @@ function AnnotationEditor({
     }
   }, []);
 
+  const addTag = (raw: string) => {
+    const t = raw.trim().toLowerCase();
+    if (t && !tags.includes(t)) setTags([...tags, t]);
+    setTagInput('');
+  };
+
   const handleSave = () => {
     saveAnnotation({
       testId,
@@ -622,6 +628,7 @@ function AnnotationEditor({
       imageData,
       selected,
       correct,
+      tags,
       createdAt: existing?.createdAt || Date.now(),
       updatedAt: Date.now(),
     });
