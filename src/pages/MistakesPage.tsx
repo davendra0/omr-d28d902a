@@ -68,6 +68,11 @@ const MistakesPage = () => {
           <option value="">All Tests</option>
           {testNames.map(n => <option key={n} value={n}>{n}</option>)}
         </select>
+        <select value={filterTag} onChange={(e) => setFilterTag(e.target.value)}
+          className="h-9 px-2 border border-border rounded-lg bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary">
+          <option value="">All Tags</option>
+          {allTags.map(t => <option key={t} value={t}>#{t}</option>)}
+        </select>
       </div>
 
       {/* Mistakes list */}
