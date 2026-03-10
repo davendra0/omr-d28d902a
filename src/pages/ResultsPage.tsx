@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
 import { exportTestAsHtml } from '@/lib/exportHtml';
 import { saveTest } from '@/lib/testHistory';
+import { markPlannedTestCompleted } from '@/lib/plannedTestStore';
 import DarkModeToggle from '@/components/DarkModeToggle';
 import type { Option } from '@/types/test';
 
@@ -276,6 +277,8 @@ const ResultsPage = () => {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && saveName.trim()) {
                       saveTest(saveName.trim(), result!, answerKey);
+                      const pid = sessionStorage.getItem('planned_test_id');
+                      if (pid) { markPlannedTestCompleted(pid); sessionStorage.removeItem('planned_test_id'); }
                       setSaved(true);
                     }
                   }}
@@ -294,6 +297,8 @@ const ResultsPage = () => {
                     onClick={() => {
                       if (saveName.trim()) {
                         saveTest(saveName.trim(), result!, answerKey);
+                        const pid = sessionStorage.getItem('planned_test_id');
+                        if (pid) { markPlannedTestCompleted(pid); sessionStorage.removeItem('planned_test_id'); }
                         setSaved(true);
                       }
                     }}
