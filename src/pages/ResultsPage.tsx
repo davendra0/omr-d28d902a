@@ -277,6 +277,8 @@ const ResultsPage = () => {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && saveName.trim()) {
                       saveTest(saveName.trim(), result!, answerKey);
+                      const pid = sessionStorage.getItem('planned_test_id');
+                      if (pid) { markPlannedTestCompleted(pid); sessionStorage.removeItem('planned_test_id'); }
                       setSaved(true);
                     }
                   }}
