@@ -540,7 +540,7 @@ function QuestionTable({
                       {ann.imageData && ' 🖼'}
                     </span>
                   )}
-                  {item.isWrong && !ann && (
+                  {!ann && (
                     <span className="ml-auto text-[10px] text-muted-foreground">+ annotate</span>
                   )}
                 </div>
