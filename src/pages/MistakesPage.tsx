@@ -7,6 +7,7 @@ const MistakesPage = () => {
   const [annotations, setAnnotations] = useState<QuestionAnnotation[]>(getAllMistakes);
   const [filterType, setFilterType] = useState<MistakeType | ''>('');
   const [filterTest, setFilterTest] = useState('');
+  const [filterTag, setFilterTag] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
