@@ -7,21 +7,24 @@ const MistakesPage = () => {
   const [annotations, setAnnotations] = useState<QuestionAnnotation[]>(getAllMistakes);
   const [filterType, setFilterType] = useState<MistakeType | ''>('');
   const [filterTest, setFilterTest] = useState('');
+  const [filterTag, setFilterTag] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const testNames = useMemo(() => [...new Set(annotations.map(a => a.testName))], [annotations]);
+  const allTags = useMemo(() => [...new Set(annotations.flatMap(a => a.tags || []))].sort(), [annotations]);
 
   const filtered = useMemo(() => {
     let list = annotations;
     if (filterType) list = list.filter(a => a.mistakeType === filterType);
     if (filterTest) list = list.filter(a => a.testName === filterTest);
+    if (filterTag) list = list.filter(a => (a.tags || []).includes(filterTag));
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      list = list.filter(a => a.notes.toLowerCase().includes(q) || a.testName.toLowerCase().includes(q));
+      list = list.filter(a => a.notes.toLowerCase().includes(q) || a.testName.toLowerCase().includes(q) || (a.tags || []).some(t => t.includes(q)));
     }
     return list;
-  }, [annotations, filterType, filterTest, searchQuery]);
+  }, [annotations, filterType, filterTest, filterTag, searchQuery]);
 
   const typeStats = (Object.entries(MISTAKE_TYPES) as [MistakeType, typeof MISTAKE_TYPES[MistakeType]][]).map(([type, meta]) => ({
     type, ...meta,
@@ -65,6 +68,11 @@ const MistakesPage = () => {
           <option value="">All Tests</option>
           {testNames.map(n => <option key={n} value={n}>{n}</option>)}
         </select>
+        <select value={filterTag} onChange={(e) => setFilterTag(e.target.value)}
+          className="h-9 px-2 border border-border rounded-lg bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary">
+          <option value="">All Tags</option>
+          {allTags.map(t => <option key={t} value={t}>#{t}</option>)}
+        </select>
       </div>
 
       {/* Mistakes list */}
@@ -95,10 +103,14 @@ const MistakesPage = () => {
                     <span className="text-[hsl(var(--success))] font-mono text-xs">{ann.correct}</span>
                     {ann.imageData && <span className="text-xs">🖼</span>}
                   </div>
-                  <div className="text-[10px] text-muted-foreground mt-0.5 flex gap-2">
+                  <div className="text-[10px] text-muted-foreground mt-0.5 flex gap-2 flex-wrap">
                     <span className="font-mono">{ann.testName}</span>
                     <span>·</span>
                     <span className={meta.color}>{meta.label}</span>
+                    {(ann.tags || []).map(tag => (
+                      <button key={tag} onClick={(e) => { e.stopPropagation(); setFilterTag(tag); }}
+                        className="text-primary font-mono hover:underline">#{tag}</button>
+                    ))}
                   </div>
                 </div>
                 <span className="text-xs text-muted-foreground">{isExpanded ? '🔼' : '🔽'}</span>

@@ -9,6 +9,7 @@ export interface QuestionAnnotation {
   imageData?: string; // base64 data URL
   selected: string | null;
   correct: string | null;
+  tags: string[];
   createdAt: number;
   updatedAt: number;
 }

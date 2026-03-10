@@ -507,7 +507,7 @@ function QuestionTable({
         </div>
       </div>
       <p className="px-4 py-2 text-[10px] text-muted-foreground bg-accent/5 border-b border-border">
-        💡 Click on any wrong question to categorize the mistake, add notes, or paste a question image
+        💡 Click on any question to annotate — add notes, tags, categorize mistakes, or paste a question image
       </p>
       {sorted.length === 0 ? (
         <div className="p-6 text-center text-sm text-muted-foreground">No questions match this filter</div>
@@ -519,9 +519,7 @@ function QuestionTable({
             return (
               <div key={item.questionNo}>
                 <div
-                  onClick={() => {
-                    if (item.isWrong || ann) setAnnotatingQ(isAnnotating ? null : item.questionNo);
-                  }}
+                  onClick={() => setAnnotatingQ(isAnnotating ? null : item.questionNo)}
                   className={`flex items-center gap-3 px-4 py-2.5 border-b border-border/30 cursor-pointer hover:bg-muted/30 transition-colors ${
                     item.isCorrect ? 'bg-[hsl(var(--success))]/5' : item.isWrong ? 'bg-destructive/5' : ''
                   } ${idx % 2 !== 0 ? 'bg-muted/10' : ''}`}
@@ -542,7 +540,7 @@ function QuestionTable({
                       {ann.imageData && ' 🖼'}
                     </span>
                   )}
-                  {item.isWrong && !ann && (
+                  {!ann && (
                     <span className="ml-auto text-[10px] text-muted-foreground">+ annotate</span>
                   )}
                 </div>
@@ -585,6 +583,8 @@ function AnnotationEditor({
   const [mistakeType, setMistakeType] = useState<MistakeType>(existing?.mistakeType || 'silly');
   const [notes, setNotes] = useState(existing?.notes || '');
   const [imageData, setImageData] = useState<string | undefined>(existing?.imageData);
+  const [tags, setTags] = useState<string[]>(existing?.tags || []);
+  const [tagInput, setTagInput] = useState('');
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
@@ -612,6 +612,12 @@ function AnnotationEditor({
     }
   }, []);
 
+  const addTag = (raw: string) => {
+    const t = raw.trim().toLowerCase();
+    if (t && !tags.includes(t)) setTags([...tags, t]);
+    setTagInput('');
+  };
+
   const handleSave = () => {
     saveAnnotation({
       testId,
@@ -622,6 +628,7 @@ function AnnotationEditor({
       imageData,
       selected,
       correct,
+      tags,
       createdAt: existing?.createdAt || Date.now(),
       updatedAt: Date.now(),
     });
@@ -663,6 +670,31 @@ function AnnotationEditor({
           placeholder="Why was this wrong? What concept did you miss? What should you remember?"
           className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-background text-foreground text-xs min-h-[80px] font-mono focus:outline-none focus:ring-2 focus:ring-primary"
         />
+      </div>
+
+      {/* Tags */}
+      <div>
+        <label className="text-[10px] text-muted-foreground font-bold">TAGS</label>
+        <div className="flex flex-wrap gap-1.5 mt-1">
+          {tags.map(tag => (
+            <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/15 text-primary text-[11px] font-mono font-bold">
+              #{tag}
+              <button onClick={() => setTags(tags.filter(t => t !== tag))} className="hover:text-destructive">×</button>
+            </span>
+          ))}
+          <input
+            type="text"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) { e.preventDefault(); addTag(tagInput); }
+              if (e.key === 'Backspace' && !tagInput && tags.length) setTags(tags.slice(0, -1));
+            }}
+            onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
+            placeholder="Add tags (e.g. trigonometry, vectors)..."
+            className="flex-1 min-w-[120px] h-7 px-2 bg-transparent text-foreground text-[11px] font-mono focus:outline-none"
+          />
+        </div>
       </div>
 
       {/* Image */}
