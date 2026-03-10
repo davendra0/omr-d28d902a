@@ -583,6 +583,8 @@ function AnnotationEditor({
   const [mistakeType, setMistakeType] = useState<MistakeType>(existing?.mistakeType || 'silly');
   const [notes, setNotes] = useState(existing?.notes || '');
   const [imageData, setImageData] = useState<string | undefined>(existing?.imageData);
+  const [tags, setTags] = useState<string[]>(existing?.tags || []);
+  const [tagInput, setTagInput] = useState('');
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
