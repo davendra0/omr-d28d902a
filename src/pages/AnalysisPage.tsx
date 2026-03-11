@@ -585,6 +585,7 @@ function AnnotationEditor({
   const [imageData, setImageData] = useState<string | undefined>(existing?.imageData);
   const [tags, setTags] = useState<string[]>(existing?.tags || []);
   const [tagInput, setTagInput] = useState('');
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;

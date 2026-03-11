@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTestStore } from '@/store/testStore';
 import { getSavedTests, type SavedTest } from '@/lib/testHistory';
-import { getPlannedTests, addPlannedTest, deletePlannedTest, type PlannedTest } from '@/lib/plannedTestStore';
+import { getPlannedTests, addPlannedTest, deletePlannedTest, type PlannedTest, type PlannedTestAttachment } from '@/lib/plannedTestStore';
 import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -26,10 +26,14 @@ const SetupPage = () => {
   const [planStart, setPlanStart] = useState('1');
   const [planTime, setPlanTime] = useState('');
   const [planDate, setPlanDate] = useState<Date | undefined>(undefined);
+  const [planAttachments, setPlanAttachments] = useState<PlannedTestAttachment[]>([]);
 
   // Data
   const [planned, setPlanned] = useState<PlannedTest[]>([]);
   const [savedTests, setSavedTests] = useState<SavedTest[]>([]);
+
+  // Lightbox
+  const [viewingAttachment, setViewingAttachment] = useState<PlannedTestAttachment | null>(null);
 
   useEffect(() => {
     setPlanned(getPlannedTests());
@@ -50,6 +54,22 @@ const SetupPage = () => {
     navigate('/test');
   };
 
+  const handleFileAdd = (files: FileList | null) => {
+    if (!files) return;
+    Array.from(files).forEach(file => {
+      if (file.size > 5 * 1024 * 1024) return; // 5MB limit
+      const reader = new FileReader();
+      reader.onload = () => {
+        setPlanAttachments(prev => [...prev, {
+          name: file.name,
+          dataUrl: reader.result as string,
+          type: file.type,
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handlePlanTest = () => {
     const total = parseInt(planQuestions);
     const start = parseInt(planStart) || 1;
@@ -61,6 +81,7 @@ const SetupPage = () => {
       startFrom: start,
       timeInMinutes: time,
       scheduledDate: format(planDate, 'yyyy-MM-dd'),
+      attachments: planAttachments.length > 0 ? planAttachments : undefined,
     });
     setPlanned(getPlannedTests());
     setPlanName('');
@@ -68,13 +89,13 @@ const SetupPage = () => {
     setPlanStart('1');
     setPlanTime('');
     setPlanDate(undefined);
+    setPlanAttachments([]);
     setTab('upcoming');
   };
 
   const handleStartPlanned = (test: PlannedTest) => {
     setConfig({ totalQuestions: test.totalQuestions, startFrom: test.startFrom, timeInMinutes: test.timeInMinutes });
     startTest();
-    // Store planned test ID so we can mark it completed after test
     sessionStorage.setItem('planned_test_id', test.id);
     navigate('/test');
   };
@@ -83,6 +104,25 @@ const SetupPage = () => {
     if (!confirm('Delete this planned test?')) return;
     deletePlannedTest(id);
     setPlanned(getPlannedTests());
+  };
+
+  const openAttachment = (att: PlannedTestAttachment) => {
+    if (att.type === 'application/pdf') {
+      // Open PDF in new tab
+      const win = window.open();
+      if (win) {
+        win.document.write(`<iframe src="${att.dataUrl}" style="width:100%;height:100%;border:none;" title="${att.name}"></iframe>`);
+        win.document.title = att.name;
+      }
+    } else if (att.type.startsWith('image/')) {
+      setViewingAttachment(att);
+    } else {
+      // Download other files
+      const a = document.createElement('a');
+      a.href = att.dataUrl;
+      a.download = att.name;
+      a.click();
+    }
   };
 
   const tabs: { key: Tab; label: string; icon: string }[] = [
@@ -146,45 +186,24 @@ const SetupPage = () => {
           <div className="text-sm font-bold font-mono text-foreground">⚡ Quick Start</div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Number of Questions</label>
-            <input
-              type="number"
-              min={1}
-              placeholder="e.g. 90"
-              value={totalQuestions}
-              onChange={(e) => setTotalQuestions(e.target.value)}
-              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <input type="number" min={1} placeholder="e.g. 90" value={totalQuestions} onChange={(e) => setTotalQuestions(e.target.value)}
+              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Starting Question Number</label>
-            <input
-              type="number"
-              min={1}
-              placeholder="e.g. 1"
-              value={startFrom}
-              onChange={(e) => setStartFrom(e.target.value)}
-              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <input type="number" min={1} placeholder="e.g. 1" value={startFrom} onChange={(e) => setStartFrom(e.target.value)}
+              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Time (minutes)</label>
-            <input
-              type="number"
-              min={1}
-              placeholder="e.g. 180"
-              value={timeInMinutes}
-              onChange={(e) => setTimeInMinutes(e.target.value)}
-              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <input type="number" min={1} placeholder="e.g. 180" value={timeInMinutes} onChange={(e) => setTimeInMinutes(e.target.value)}
+              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <div className="text-xs text-muted-foreground bg-muted p-3 rounded">
             <strong>Scoring:</strong> +4 for correct, −1 for wrong, 0 for unanswered
           </div>
-          <button
-            onClick={handleQuickStart}
-            disabled={!totalQuestions || !timeInMinutes}
-            className="w-full h-12 bg-primary text-primary-foreground font-bold text-lg rounded hover:opacity-90 disabled:opacity-40 transition-opacity"
-          >
+          <button onClick={handleQuickStart} disabled={!totalQuestions || !timeInMinutes}
+            className="w-full h-12 bg-primary text-primary-foreground font-bold text-lg rounded hover:opacity-90 disabled:opacity-40 transition-opacity">
             ▶ Start Test
           </button>
         </div>
@@ -196,48 +215,25 @@ const SetupPage = () => {
           <div className="text-sm font-bold font-mono text-foreground">📅 Plan a Test</div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Test Name</label>
-            <input
-              type="text"
-              placeholder="e.g. Physics Mock Test 3"
-              value={planName}
-              onChange={(e) => setPlanName(e.target.value)}
-              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <input type="text" placeholder="e.g. Physics Mock Test 3" value={planName} onChange={(e) => setPlanName(e.target.value)}
+              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Questions</label>
-              <input
-                type="number"
-                min={1}
-                placeholder="e.g. 90"
-                value={planQuestions}
-                onChange={(e) => setPlanQuestions(e.target.value)}
-                className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              <input type="number" min={1} placeholder="e.g. 90" value={planQuestions} onChange={(e) => setPlanQuestions(e.target.value)}
+                className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
             </div>
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Start From</label>
-              <input
-                type="number"
-                min={1}
-                placeholder="1"
-                value={planStart}
-                onChange={(e) => setPlanStart(e.target.value)}
-                className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
+              <input type="number" min={1} placeholder="1" value={planStart} onChange={(e) => setPlanStart(e.target.value)}
+                className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
             </div>
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Time (minutes)</label>
-            <input
-              type="number"
-              min={1}
-              placeholder="e.g. 180"
-              value={planTime}
-              onChange={(e) => setPlanTime(e.target.value)}
-              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            />
+            <input type="number" min={1} placeholder="e.g. 180" value={planTime} onChange={(e) => setPlanTime(e.target.value)}
+              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Scheduled Date</label>
@@ -251,22 +247,37 @@ const SetupPage = () => {
                 </button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={planDate}
-                  onSelect={setPlanDate}
+                <Calendar mode="single" selected={planDate} onSelect={setPlanDate}
                   disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                  initialFocus
-                  className={cn("p-3 pointer-events-auto")}
-                />
+                  initialFocus className={cn("p-3 pointer-events-auto")} />
               </PopoverContent>
             </Popover>
           </div>
-          <button
-            onClick={handlePlanTest}
-            disabled={!planName.trim() || !planQuestions || !planTime || !planDate}
-            className="w-full h-12 bg-primary text-primary-foreground font-bold text-lg rounded hover:opacity-90 disabled:opacity-40 transition-opacity"
-          >
+
+          {/* Attachments */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">Attachments (Q paper, Ans key PDFs/images)</label>
+            <label className="inline-flex items-center gap-2 px-4 py-2 border border-dashed border-border rounded-lg cursor-pointer hover:bg-muted transition-colors text-sm text-muted-foreground">
+              📎 Browse files
+              <input type="file" multiple accept=".pdf,image/*" className="hidden" onChange={(e) => handleFileAdd(e.target.files)} />
+            </label>
+            {planAttachments.length > 0 && (
+              <div className="mt-2 space-y-1.5">
+                {planAttachments.map((att, i) => (
+                  <div key={i} className="flex items-center justify-between gap-2 bg-muted rounded-lg px-3 py-1.5">
+                    <span className="text-xs font-mono text-foreground truncate">
+                      {att.type === 'application/pdf' ? '📄' : '🖼'} {att.name}
+                    </span>
+                    <button onClick={() => setPlanAttachments(prev => prev.filter((_, j) => j !== i))}
+                      className="text-xs text-muted-foreground hover:text-destructive shrink-0">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <button onClick={handlePlanTest} disabled={!planName.trim() || !planQuestions || !planTime || !planDate}
+            className="w-full h-12 bg-primary text-primary-foreground font-bold text-lg rounded hover:opacity-90 disabled:opacity-40 transition-opacity">
             📅 Schedule Test
           </button>
         </div>
@@ -284,14 +295,12 @@ const SetupPage = () => {
             upcomingTests.map(test => {
               const isToday = test.scheduledDate === todayStr;
               const isPast = test.scheduledDate < todayStr;
+              const attachments = test.attachments || [];
               return (
-                <div
-                  key={test.id}
-                  className={cn(
-                    "bg-card border rounded-lg p-4 transition-colors",
-                    isToday ? 'border-primary/50 bg-primary/5' : isPast ? 'border-destructive/30 bg-destructive/5' : 'border-border'
-                  )}
-                >
+                <div key={test.id} className={cn(
+                  "bg-card border rounded-lg p-4 transition-colors",
+                  isToday ? 'border-primary/50 bg-primary/5' : isPast ? 'border-destructive/30 bg-destructive/5' : 'border-border'
+                )}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="font-mono font-bold text-foreground truncate">{test.name}</div>
@@ -306,19 +315,25 @@ const SetupPage = () => {
                         <span>Q{test.startFrom}–{test.startFrom + test.totalQuestions - 1}</span>
                         <span>⏱ {test.timeInMinutes}m</span>
                       </div>
+                      {/* Attachments */}
+                      {attachments.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {attachments.map((att, i) => (
+                            <button key={i} onClick={() => openAttachment(att)}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-muted rounded text-[11px] font-mono text-foreground hover:bg-accent/20 transition-colors">
+                              {att.type === 'application/pdf' ? '📄' : '🖼'} {att.name.length > 20 ? att.name.slice(0, 18) + '…' : att.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-1 shrink-0">
-                      <button
-                        onClick={() => handleStartPlanned(test)}
-                        className="px-3 py-1.5 bg-primary text-primary-foreground rounded text-xs font-bold hover:opacity-90 transition-opacity"
-                      >
+                      <button onClick={() => handleStartPlanned(test)}
+                        className="px-3 py-1.5 bg-primary text-primary-foreground rounded text-xs font-bold hover:opacity-90 transition-opacity">
                         ▶ Start
                       </button>
-                      <button
-                        onClick={() => handleDeletePlanned(test.id)}
-                        className="p-1.5 text-muted-foreground hover:text-destructive text-sm"
-                        title="Delete"
-                      >
+                      <button onClick={() => handleDeletePlanned(test.id)}
+                        className="p-1.5 text-muted-foreground hover:text-destructive text-sm" title="Delete">
                         🗑
                       </button>
                     </div>
@@ -327,6 +342,16 @@ const SetupPage = () => {
               );
             })
           )}
+        </div>
+      )}
+
+      {/* Image lightbox for attachments */}
+      {viewingAttachment && (
+        <div className="fixed inset-0 z-[100] bg-background/90 backdrop-blur flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setViewingAttachment(null)}>
+          <img src={viewingAttachment.dataUrl} alt={viewingAttachment.name}
+            className="max-w-full max-h-full rounded-xl shadow-2xl border border-border" />
+          <button className="absolute top-4 right-4 text-foreground bg-card border border-border rounded-full p-2 hover:bg-muted">✕</button>
         </div>
       )}
     </div>
