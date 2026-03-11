@@ -703,13 +703,34 @@ function AnnotationEditor({
         <div className="mt-1 border-2 border-dashed border-border rounded-lg p-4 text-center text-xs text-muted-foreground">
           {imageData ? (
             <div className="space-y-2">
-              <img src={imageData} alt="Question" className="max-w-full max-h-48 mx-auto rounded-lg border border-border" />
+              <img
+                src={imageData}
+                alt="Question"
+                className="max-w-full max-h-48 mx-auto rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={() => setViewingImage(imageData)}
+              />
               <button onClick={() => setImageData(undefined)} className="text-destructive text-[10px] hover:underline">Remove image</button>
             </div>
           ) : (
             <div>
               <div className="text-2xl mb-1">📋</div>
-              <div>Paste (Ctrl+V) or drag & drop an image of the question here</div>
+              <div>Paste (Ctrl+V), drag & drop, or browse an image</div>
+              <label className="mt-2 inline-block px-3 py-1.5 bg-primary text-primary-foreground rounded text-[11px] font-bold cursor-pointer hover:opacity-90">
+                Browse File
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file?.type.startsWith('image/')) {
+                      const reader = new FileReader();
+                      reader.onload = () => setImageData(reader.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
             </div>
           )}
         </div>
@@ -721,6 +742,17 @@ function AnnotationEditor({
         </button>
         <button onClick={onCancel} className="px-4 py-2 border border-border rounded-lg text-xs text-foreground hover:bg-muted">Cancel</button>
       </div>
+
+      {/* Image lightbox */}
+      {viewingImage && (
+        <div
+          className="fixed inset-0 z-[100] bg-background/90 backdrop-blur flex items-center justify-center p-4 cursor-pointer"
+          onClick={() => setViewingImage(null)}
+        >
+          <img src={viewingImage} alt="Full view" className="max-w-full max-h-full rounded-xl shadow-2xl border border-border" />
+          <button className="absolute top-4 right-4 text-foreground bg-card border border-border rounded-full p-2 hover:bg-muted">✕</button>
+        </div>
+      )}
     </div>
   );
 }
