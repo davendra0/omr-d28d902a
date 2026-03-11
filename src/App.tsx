@@ -17,6 +17,7 @@ import TodoPage from "./pages/TodoPage";
 import NotesPage from "./pages/NotesPage";
 import MistakesPage from "./pages/MistakesPage";
 import SyllabusPage from "./pages/SyllabusPage";
+import SettingsPage from "./pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
