@@ -1,3 +1,9 @@
+export interface PlannedTestAttachment {
+  name: string;
+  dataUrl: string; // base64 data URL
+  type: string; // MIME type
+}
+
 export interface PlannedTest {
   id: string;
   name: string;
@@ -7,6 +13,7 @@ export interface PlannedTest {
   scheduledDate: string; // ISO date string (YYYY-MM-DD)
   createdAt: number;
   completed: boolean;
+  attachments?: PlannedTestAttachment[];
 }
 
 const STORAGE_KEY = 'workspace_planned_tests';

@@ -13,6 +13,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -21,23 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import {
-  DndContext,
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  rectSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
 
 const SUBJECT_LABELS: Record<Chapter['subject'], string> = {
   physics: 'Physics',
@@ -75,53 +59,39 @@ const NOTE_TYPE_BADGE: Record<SubtopicNote['type'], string> = {
   concept: 'bg-primary/10 text-primary border-primary/20',
 };
 
-// --- Sortable Chapter Tile ---
+// --- Chapter Tile with checkbox for swap ---
 function ChapterTile({
   chapter,
   onClick,
+  isSelected,
+  onToggleSelect,
 }: {
   chapter: Chapter;
   onClick: () => void;
+  isSelected: boolean;
+  onToggleSelect: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: chapter.id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 50 : 'auto' as any,
-  };
-
   const noteCount = chapter.subtopics.reduce((sum, st) => sum + st.notes.length, 0);
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      className={`group relative rounded-xl border-l-4 border border-border ${SUBJECT_COLORS[chapter.subject]} ${SUBJECT_BG[chapter.subject]} cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]`}
+      className={`group relative rounded-xl border-l-4 border border-border ${SUBJECT_COLORS[chapter.subject]} ${SUBJECT_BG[chapter.subject]} cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] ${isSelected ? 'ring-2 ring-primary shadow-md' : ''}`}
       onClick={onClick}
     >
-      {/* Drag handle */}
+      {/* Swap checkbox */}
       <div
-        {...listeners}
-        className="absolute top-2 right-2 p-1 rounded text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing"
+        className="absolute top-2 right-2 z-10"
         onClick={(e) => e.stopPropagation()}
-        title="Drag to reorder"
       >
-        <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-          <circle cx="5" cy="3" r="1.5" />
-          <circle cx="11" cy="3" r="1.5" />
-          <circle cx="5" cy="8" r="1.5" />
-          <circle cx="11" cy="8" r="1.5" />
-          <circle cx="5" cy="13" r="1.5" />
-          <circle cx="11" cy="13" r="1.5" />
-        </svg>
+        <Checkbox
+          checked={isSelected}
+          onCheckedChange={onToggleSelect}
+          className="h-5 w-5"
+          title="Select to swap position"
+        />
       </div>
 
-      <div className="p-3.5 pr-8">
+      <div className="p-3.5 pr-10">
         <h3 className="font-semibold text-foreground text-sm leading-tight">{chapter.name}</h3>
         <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
           <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${SUBJECT_BADGE[chapter.subject]}`}>
@@ -309,11 +279,9 @@ const SyllabusPage = () => {
   const [classFilter, setClassFilter] = useState<'all' | Chapter['class']>('all');
   const [search, setSearch] = useState('');
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
+  
+  // Swap mode: store first selected chapter id
+  const [swapFirst, setSwapFirst] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     return chapters.filter((ch) => {
@@ -329,31 +297,33 @@ const SyllabusPage = () => {
 
   const updateAndSet = useCallback((next: Chapter[]) => {
     setChapters(next);
-    // Refresh selected chapter if open
     setSelectedChapter((prev) => prev ? next.find((c) => c.id === prev.id) || null : null);
   }, []);
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = filtered.findIndex((c) => c.id === active.id);
-    const newIndex = filtered.findIndex((c) => c.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-
-    // Reorder in the filtered view, then apply back to full list
-    const reordered = arrayMove(filtered, oldIndex, newIndex);
-    // Assign priorities: highest priority to first item
-    const maxPriority = reordered.length;
-    const updatedIds = new Map(reordered.map((ch, i) => [ch.id, maxPriority - i]));
-
-    const allUpdated = chapters.map((ch) => ({
-      ...ch,
-      priority: updatedIds.has(ch.id) ? updatedIds.get(ch.id)! : ch.priority,
-    }));
-
-    saveChapters(allUpdated);
-    setChapters(allUpdated);
+  const handleToggleSelect = (chapterId: string) => {
+    if (!swapFirst) {
+      // First selection
+      setSwapFirst(chapterId);
+    } else if (swapFirst === chapterId) {
+      // Deselect
+      setSwapFirst(null);
+    } else {
+      // Second selection — swap positions in the full chapters array
+      const allChapters = [...chapters];
+      const idxA = allChapters.findIndex(c => c.id === swapFirst);
+      const idxB = allChapters.findIndex(c => c.id === chapterId);
+      if (idxA !== -1 && idxB !== -1) {
+        // Swap priority values
+        const tempPriority = allChapters[idxA].priority;
+        allChapters[idxA] = { ...allChapters[idxA], priority: allChapters[idxB].priority };
+        allChapters[idxB] = { ...allChapters[idxB], priority: tempPriority };
+        // Swap positions in array
+        [allChapters[idxA], allChapters[idxB]] = [allChapters[idxB], allChapters[idxA]];
+        saveChapters(allChapters);
+        setChapters(allChapters);
+      }
+      setSwapFirst(null);
+    }
   };
 
   const stats = useMemo(() => {
@@ -371,8 +341,16 @@ const SyllabusPage = () => {
         <div className="bg-card border border-border rounded-xl p-5">
           <h1 className="text-2xl font-bold text-foreground font-mono">📚 Syllabus Tracker</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Drag tiles to prioritize. Click any chapter to manage subtopics &amp; notes.
+            Tick a checkbox to select, then tick another to swap their positions. Click any chapter to manage subtopics &amp; notes.
           </p>
+          {swapFirst && (
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-xs font-mono text-primary bg-primary/10 px-2 py-1 rounded">
+                ✓ Selected: {chapters.find(c => c.id === swapFirst)?.name} — now tick another to swap
+              </span>
+              <button onClick={() => setSwapFirst(null)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+            </div>
+          )}
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="bg-muted/30 border border-border rounded-lg p-3 text-center">
               <p className="text-[11px] text-muted-foreground">Chapters</p>
@@ -422,20 +400,18 @@ const SyllabusPage = () => {
           </select>
         </div>
 
-        {/* Chapter tiles grid with drag & drop */}
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={filtered.map((c) => c.id)} strategy={rectSortingStrategy}>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {filtered.map((chapter) => (
-                <ChapterTile
-                  key={chapter.id}
-                  chapter={chapter}
-                  onClick={() => setSelectedChapter(chapter)}
-                />
-              ))}
-            </div>
-          </SortableContext>
-        </DndContext>
+        {/* Chapter tiles grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {filtered.map((chapter) => (
+            <ChapterTile
+              key={chapter.id}
+              chapter={chapter}
+              onClick={() => setSelectedChapter(chapter)}
+              isSelected={swapFirst === chapter.id}
+              onToggleSelect={() => handleToggleSelect(chapter.id)}
+            />
+          ))}
+        </div>
 
         {filtered.length === 0 && (
           <div className="text-center py-12 text-muted-foreground">
