@@ -4,13 +4,14 @@ import { useTestStore } from '@/store/testStore';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, CartesianGrid, Legend,
-  AreaChart, Area
+  AreaChart, Area, ComposedChart,
 } from 'recharts';
 import {
   getAnnotation, saveAnnotation, getAnnotationsForTest,
   type QuestionAnnotation, type MistakeType, MISTAKE_TYPES,
 } from '@/lib/mistakeStore';
 import { getSavedTests } from '@/lib/testHistory';
+import type { TestSection } from '@/types/test';
 
 const COLORS = {
   correct: 'hsl(142, 71%, 40%)',
@@ -18,14 +19,15 @@ const COLORS = {
   unanswered: 'hsl(215, 16%, 47%)',
   primary: 'hsl(221, 83%, 53%)',
   warn: 'hsl(38, 92%, 50%)',
+  speed: 'hsl(280, 70%, 55%)',
 };
 
 const AnalysisPage = () => {
   const { result, answerKey } = useTestStore();
   const navigate = useNavigate();
   const [annotatingQ, setAnnotatingQ] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'overall' | string>('overall');
 
-  // Try to find the test ID from saved tests
   const currentTestId = useMemo(() => {
     if (!result) return '';
     const saved = getSavedTests();
@@ -47,6 +49,14 @@ const AnalysisPage = () => {
     setAnnotations(getAnnotationsForTest(currentTestId));
   }, [currentTestId]);
 
+  // Build sections from config
+  const sections: TestSection[] = useMemo(() => {
+    if (!result) return [];
+    const cfg = result.config;
+    if (cfg.sections && cfg.sections.length > 0) return cfg.sections;
+    return [];
+  }, [result]);
+
   const timeGaps = useMemo(() => {
     if (!result) return {};
     const answered = result.responses
@@ -59,6 +69,20 @@ const AnalysisPage = () => {
       prev = r.answeredAt!;
     });
     return gaps;
+  }, [result]);
+
+  // Attempt order mapping
+  const attemptOrder = useMemo(() => {
+    if (!result) return new Map<number, number>();
+    const answered = result.responses
+      .filter(r => r.answeredAt !== null)
+      .sort((a, b) => a.answeredAt! - b.answeredAt!);
+    const map = new Map<number, number>();
+    answered.forEach((r, i) => map.set(r.questionNo, i + 1));
+    // Unanswered get order after
+    let next = answered.length + 1;
+    result.responses.filter(r => r.answeredAt === null).forEach(r => map.set(r.questionNo, next++));
+    return map;
   }, [result]);
 
   const analysis = useMemo(() => {
@@ -76,135 +100,27 @@ const AnalysisPage = () => {
         isSkipped: r.selected === null,
         marks: isCorrect ? 4 : isWrong ? -1 : 0,
         timeGap: timeGaps[r.questionNo] ?? null,
+        answeredAt: r.answeredAt,
+        attemptIdx: attemptOrder.get(r.questionNo) ?? 999,
       };
     });
-  }, [result, answerKey, timeGaps]);
+  }, [result, answerKey, timeGaps, attemptOrder]);
 
   if (!result || !answerKey) {
     navigate('/results');
     return null;
   }
 
-  const total = analysis.length;
-  const correctCount = analysis.filter((a) => a.isCorrect).length;
-  const incorrectCount = analysis.filter((a) => a.isWrong).length;
-  const skippedCount = analysis.filter((a) => a.isSkipped).length;
-  const totalScore = analysis.reduce((sum, a) => sum + a.marks, 0);
-  const maxScore = total * 4;
-  const marksLostToWrong = incorrectCount;
-  const marksMissedBySkipping = skippedCount * 4;
-  const accuracy = total > 0 ? Math.round((correctCount / (correctCount + incorrectCount || 1)) * 100) : 0;
-  const attemptRate = total > 0 ? Math.round(((total - skippedCount) / total) * 100) : 0;
-
-  const pieData = [
-    { name: 'Correct (+4)', value: correctCount, color: COLORS.correct },
-    { name: 'Incorrect (−1)', value: incorrectCount, color: COLORS.incorrect },
-    { name: 'Skipped (0)', value: skippedCount, color: COLORS.unanswered },
-  ].filter(d => d.value > 0);
-
-  const cumulativeScore = (() => {
-    let running = 0;
-    return analysis.map((a) => {
-      running += a.marks;
-      return { q: `Q${a.questionNo}`, score: running, marks: a.marks };
-    });
-  })();
-
-  const cumulativeAccuracy = (() => {
-    let c = 0, t = 0;
-    return analysis.map((a) => {
-      t++;
-      if (a.isCorrect) c++;
-      return { q: `Q${a.questionNo}`, accuracy: Math.round((c / t) * 100) };
-    });
-  })();
-
-  const timeChartData = analysis
-    .filter((a) => a.timeGap !== null)
-    .map((a) => ({ q: `Q${a.questionNo}`, time: a.timeGap!, marks: a.marks }));
-
-  const answeredInOrder = analysis
-    .filter(a => a.timeGap !== null)
-    .sort((a, b) => {
-      const aTime = result.responses.find(r => r.questionNo === a.questionNo)?.answeredAt ?? 0;
-      const bTime = result.responses.find(r => r.questionNo === b.questionNo)?.answeredAt ?? 0;
-      return aTime - bTime;
-    });
-
-  const timeSegments = (() => {
-    if (answeredInOrder.length === 0) return [];
-    const segCount = Math.min(5, answeredInOrder.length);
-    const segSize = Math.ceil(answeredInOrder.length / segCount);
-    return Array.from({ length: segCount }, (_, i) => {
-      const slice = answeredInOrder.slice(i * segSize, (i + 1) * segSize);
-      const earned = slice.filter(a => a.isCorrect).length * 4;
-      const lost = slice.filter(a => a.isWrong).length * 1;
-      const pct = Math.round(((i + 1) / segCount) * 100);
-      return {
-        name: `${Math.round((i / segCount) * 100)}–${pct}%`,
-        earned, lost,
-        net: slice.reduce((s, a) => s + a.marks, 0),
-        correct: slice.filter(a => a.isCorrect).length,
-        wrong: slice.filter(a => a.isWrong).length,
-      };
-    });
-  })();
-
-  const segmentSize = Math.ceil(total / 4);
-  const sections = Array.from({ length: 4 }, (_, i) => {
-    const slice = analysis.slice(i * segmentSize, (i + 1) * segmentSize);
-    if (slice.length === 0) return null;
-    const seg_correct = slice.filter(a => a.isCorrect).length;
-    const seg_wrong = slice.filter(a => a.isWrong).length;
-    const seg_score = slice.reduce((s, a) => s + a.marks, 0);
-    const seg_max = slice.length * 4;
-    return {
-      name: `Q${slice[0].questionNo}–${slice[slice.length - 1].questionNo}`,
-      correct: seg_correct, wrong: seg_wrong,
-      skipped: slice.filter(a => a.isSkipped).length,
-      score: seg_score, maxScore: seg_max,
-      pct: seg_max > 0 ? Math.round((seg_score / seg_max) * 100) : 0,
-    };
-  }).filter(Boolean) as NonNullable<ReturnType<typeof Array.from<any, any>>>;
-
-  let bestStreak = 0, worstStreak = 0, curGood = 0, curBad = 0;
-  analysis.forEach((a) => {
-    if (a.isCorrect) { curGood++; bestStreak = Math.max(bestStreak, curGood); curBad = 0; }
-    else if (a.isWrong) { curBad++; worstStreak = Math.max(worstStreak, curBad); curGood = 0; }
-    else { curGood = 0; curBad = 0; }
-  });
-
-  const answeredTimes = analysis.filter(a => a.timeGap !== null).map(a => a.timeGap!);
-  const avgTime = answeredTimes.length > 0 ? Math.round(answeredTimes.reduce((a, b) => a + b, 0) / answeredTimes.length) : 0;
-  const fastestQ = answeredTimes.length > 0 ? Math.min(...answeredTimes) : 0;
-  const slowestQ = answeredTimes.length > 0 ? Math.max(...answeredTimes) : 0;
-
-  const correctTimes = analysis.filter(a => a.isCorrect && a.timeGap !== null).map(a => a.timeGap!);
-  const wrongTimes = analysis.filter(a => a.isWrong && a.timeGap !== null).map(a => a.timeGap!);
-  const avgCorrectTime = correctTimes.length > 0 ? Math.round(correctTimes.reduce((a, b) => a + b, 0) / correctTimes.length) : 0;
-  const avgWrongTime = wrongTimes.length > 0 ? Math.round(wrongTimes.reduce((a, b) => a + b, 0) / wrongTimes.length) : 0;
-
-  const optionDist = { A: 0, B: 0, C: 0, D: 0 };
-  const correctDist = { A: 0, B: 0, C: 0, D: 0 };
-  analysis.forEach((a) => {
-    if (a.selected && a.selected in optionDist) optionDist[a.selected as keyof typeof optionDist]++;
-    if (a.correct && a.correct in correctDist) correctDist[a.correct as keyof typeof correctDist]++;
-  });
-
-  const worstTimeWasted = analysis
-    .filter(a => a.isWrong && a.timeGap !== null)
-    .sort((a, b) => b.timeGap! - a.timeGap!)
-    .slice(0, 5);
-
   const fmt = (s: number) => s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${s % 60}s`;
 
-  // Annotation stats
-  const annotatedCount = annotations.length;
-  const mistakeBreakdown = Object.entries(MISTAKE_TYPES).map(([type, meta]) => ({
-    type: type as MistakeType,
-    ...meta,
-    count: annotations.filter(a => a.mistakeType === type).length,
-  })).filter(b => b.count > 0);
+  // Filter analysis for a section
+  const getAnalysisForSection = (sec?: TestSection) => {
+    if (!sec) return analysis;
+    return analysis.filter(a => a.questionNo >= sec.startQ && a.questionNo <= sec.endQ);
+  };
+
+  const activeSec = activeTab === 'overall' ? undefined : sections.find(s => s.name === activeTab);
+  const filteredAnalysis = getAnalysisForSection(activeSec);
 
   return (
     <div className="min-h-screen bg-background p-4 pb-16">
@@ -216,229 +132,28 @@ const AnalysisPage = () => {
           <h1 className="text-xl font-bold font-mono text-foreground">Detailed Analysis</h1>
         </div>
 
-        {/* Score summary */}
-        <div className="bg-card border-2 border-primary/30 rounded-lg p-5">
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
-            <div>
-              <div className="text-3xl font-bold font-mono text-primary">{totalScore}</div>
-              <div className="text-xs text-muted-foreground mt-1">Score / {maxScore}</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold font-mono text-[hsl(var(--success))]">+{correctCount * 4}</div>
-              <div className="text-xs text-muted-foreground mt-1">{correctCount} Correct</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold font-mono text-destructive">−{marksLostToWrong}</div>
-              <div className="text-xs text-muted-foreground mt-1">{incorrectCount} Wrong</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold font-mono text-foreground">{accuracy}%</div>
-              <div className="text-xs text-muted-foreground mt-1">Accuracy</div>
-            </div>
-            <div>
-              <div className="text-2xl font-bold font-mono text-accent">{attemptRate}%</div>
-              <div className="text-xs text-muted-foreground mt-1">Attempt Rate</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Key stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: 'Avg Time/Q', value: fmt(avgTime) },
-            { label: 'Fastest', value: fmt(fastestQ) },
-            { label: 'Slowest', value: fmt(slowestQ) },
-            { label: 'Marks Missed (Skips)', value: String(marksMissedBySkipping) },
-          ].map((m) => (
-            <div key={m.label} className="bg-card border border-border rounded-lg p-3 text-center">
-              <div className="text-lg font-bold font-mono text-foreground">{m.value}</div>
-              <div className="text-[10px] text-muted-foreground mt-1">{m.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Time efficiency */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-card border border-[hsl(var(--success))]/30 rounded-lg p-3 text-center">
-            <div className="text-lg font-bold font-mono text-[hsl(var(--success))]">{fmt(avgCorrectTime)}</div>
-            <div className="text-[10px] text-muted-foreground mt-1">Avg Time on Correct</div>
-          </div>
-          <div className="bg-card border border-destructive/30 rounded-lg p-3 text-center">
-            <div className="text-lg font-bold font-mono text-destructive">{fmt(avgWrongTime)}</div>
-            <div className="text-[10px] text-muted-foreground mt-1">Avg Time on Wrong</div>
-          </div>
-          <div className="bg-card border border-border rounded-lg p-3 text-center">
-            <div className="text-lg font-bold font-mono text-foreground">{bestStreak} ✓ / {worstStreak} ✗</div>
-            <div className="text-[10px] text-muted-foreground mt-1">Best / Worst Streak</div>
-          </div>
-        </div>
-
-        {/* Mistake categorization summary */}
-        {annotatedCount > 0 && (
-          <div className="bg-card border border-accent/30 rounded-lg p-4">
-            <h3 className="font-mono text-sm text-foreground font-bold mb-3">🏷 Mistake Categorization ({annotatedCount} annotated)</h3>
-            <div className="flex gap-3 flex-wrap">
-              {mistakeBreakdown.map(b => (
-                <div key={b.type} className="bg-muted rounded-lg px-3 py-2 text-center">
-                  <div className="text-lg">{b.icon}</div>
-                  <div className="text-sm font-mono font-bold text-foreground">{b.count}</div>
-                  <div className="text-[10px] text-muted-foreground">{b.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="bg-card border border-border rounded-lg p-4">
-            <h3 className="font-mono text-sm text-muted-foreground font-bold mb-3">Score Breakdown</h3>
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={75} dataKey="value" strokeWidth={2} stroke="hsl(var(--background))">
-                    {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(value: number, name: string) => [`${value} questions`, name]} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-lg p-4">
-            <h3 className="font-mono text-sm text-muted-foreground font-bold mb-3">Score Progression</h3>
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={cumulativeScore}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="q" tick={{ fontSize: 8 }} interval={Math.max(0, Math.floor(cumulativeScore.length / 10) - 1)} />
-                  <YAxis tick={{ fontSize: 10 }} width={40} />
-                  <Tooltip formatter={(v: number) => [v, 'Score']} />
-                  <Area type="monotone" dataKey="score" stroke={COLORS.primary} fill={COLORS.primary} fillOpacity={0.15} strokeWidth={2} />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-lg p-4">
-            <h3 className="font-mono text-sm text-muted-foreground font-bold mb-3">Accuracy Trend</h3>
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={cumulativeAccuracy}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="q" tick={{ fontSize: 8 }} interval={Math.max(0, Math.floor(cumulativeAccuracy.length / 10) - 1)} />
-                  <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} width={35} />
-                  <Tooltip formatter={(v: number) => [`${v}%`, 'Accuracy']} />
-                  <Line type="monotone" dataKey="accuracy" stroke={COLORS.primary} strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-
-          <div className="bg-card border border-border rounded-lg p-4">
-            <h3 className="font-mono text-sm text-muted-foreground font-bold mb-3">Time Per Question</h3>
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={timeChartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="q" tick={{ fontSize: 7 }} interval={Math.max(0, Math.floor(timeChartData.length / 12) - 1)} />
-                  <YAxis tick={{ fontSize: 10 }} width={35} />
-                  <Tooltip formatter={(v: number) => [fmt(v), 'Time']} />
-                  <Bar dataKey="time" fill={COLORS.primary} radius={[2, 2, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Time-segment marks */}
-        {timeSegments.length > 0 && (
-          <div className="bg-card border border-border rounded-lg p-4">
-            <h3 className="font-mono text-sm text-muted-foreground font-bold mb-3">Marks Earned vs Lost Over Time</h3>
-            <div className="h-52">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={timeSegments}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} width={35} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="earned" name="Marks Earned" fill={COLORS.correct} radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="lost" name="Marks Lost" fill={COLORS.incorrect} radius={[2, 2, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {/* Section-wise */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <h3 className="font-mono text-sm text-muted-foreground font-bold mb-3">Section-wise Performance</h3>
-          <div className="space-y-3">
-            {(sections as any[]).map((seg: any) => (
-              <div key={seg.name}>
-                <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="font-mono text-xs text-muted-foreground">{seg.name}</span>
-                  <span className="font-mono text-xs font-bold">{seg.score}/{seg.maxScore} ({seg.pct}%)</span>
-                </div>
-                <div className="h-5 bg-muted rounded-full overflow-hidden flex">
-                  <div className="h-full transition-all" style={{ width: `${(seg.correct / (seg.correct + seg.wrong + seg.skipped)) * 100}%`, backgroundColor: COLORS.correct }} />
-                  <div className="h-full transition-all" style={{ width: `${(seg.wrong / (seg.correct + seg.wrong + seg.skipped)) * 100}%`, backgroundColor: COLORS.incorrect }} />
-                </div>
-                <div className="flex gap-4 mt-1 text-[10px] text-muted-foreground">
-                  <span>✓ {seg.correct}</span>
-                  <span>✗ {seg.wrong}</span>
-                  <span>— {seg.skipped}</span>
-                </div>
-              </div>
+        {/* Section tabs */}
+        {sections.length > 0 && (
+          <div className="flex gap-1 flex-wrap bg-muted rounded-lg p-1">
+            <button onClick={() => setActiveTab('overall')}
+              className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors ${activeTab === 'overall' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+              📊 Overall
+            </button>
+            {sections.map(sec => (
+              <button key={sec.name} onClick={() => setActiveTab(sec.name)}
+                className={`px-3 py-1.5 rounded text-xs font-mono font-bold transition-colors ${activeTab === sec.name ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                {sec.name}
+              </button>
             ))}
           </div>
-        </div>
-
-        {/* Option distribution */}
-        <div className="bg-card border border-border rounded-lg p-4">
-          <h3 className="font-mono text-sm text-muted-foreground font-bold mb-3">Option Distribution: Yours vs Key</h3>
-          <div className="grid grid-cols-4 gap-4">
-            {(['A', 'B', 'C', 'D'] as const).map((opt) => (
-              <div key={opt} className="text-center border border-border rounded-lg p-3">
-                <div className="font-mono text-lg font-bold text-foreground">{opt}</div>
-                <div className="mt-2 text-sm">
-                  <div className="text-primary font-mono font-bold">{optionDist[opt]}</div>
-                  <div className="text-[10px] text-muted-foreground">Your picks</div>
-                </div>
-                <div className="h-px bg-border my-2" />
-                <div className="text-sm">
-                  <div className="text-[hsl(var(--success))] font-mono font-bold">{correctDist[opt]}</div>
-                  <div className="text-[10px] text-muted-foreground">In key</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Worst time wasters */}
-        {worstTimeWasted.length > 0 && (
-          <div className="bg-card border border-destructive/30 rounded-lg p-4">
-            <h3 className="font-mono text-sm text-destructive font-bold mb-3">⚠ Most Time Wasted on Wrong Answers</h3>
-            <div className="space-y-2">
-              {worstTimeWasted.map((a) => (
-                <div key={a.questionNo} className="flex items-center justify-between py-2 px-3 bg-destructive/5 rounded">
-                  <span className="font-mono text-sm font-bold">Q.{a.questionNo}</span>
-                  <span className="text-xs text-muted-foreground">
-                    You: <strong className="text-destructive">{a.selected}</strong> → Correct: <strong className="text-[hsl(var(--success))]">{a.correct}</strong>
-                  </span>
-                  <span className="font-mono text-sm text-destructive font-bold">{fmt(a.timeGap!)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
         )}
 
-        {/* Question-wise breakdown with annotations */}
-        <QuestionTable
-          analysis={analysis}
+        <AnalysisContent
+          analysis={filteredAnalysis}
+          allAnalysis={analysis}
+          result={result}
           fmt={fmt}
+          sectionLabel={activeTab === 'overall' ? undefined : activeTab}
           testId={currentTestId}
           testName={currentTestName}
           annotations={annotations}
@@ -451,10 +166,315 @@ const AnalysisPage = () => {
   );
 };
 
-type SortMode = 'default' | 'time-desc' | 'time-asc' | 'wrong-slow' | 'right-slow' | 'correct-only' | 'wrong-only' | 'skipped-only' | 'annotated';
+function AnalysisContent({
+  analysis, allAnalysis, result, fmt, sectionLabel, testId, testName, annotations, annotatingQ, setAnnotatingQ, onAnnotationSaved,
+}: {
+  analysis: any[]; allAnalysis: any[]; result: any; fmt: (s: number) => string;
+  sectionLabel?: string;
+  testId: string; testName: string;
+  annotations: QuestionAnnotation[];
+  annotatingQ: number | null;
+  setAnnotatingQ: (q: number | null) => void;
+  onAnnotationSaved: () => void;
+}) {
+  const total = analysis.length;
+  const correctCount = analysis.filter((a) => a.isCorrect).length;
+  const incorrectCount = analysis.filter((a) => a.isWrong).length;
+  const skippedCount = analysis.filter((a) => a.isSkipped).length;
+  const totalScore = analysis.reduce((sum: number, a: any) => sum + a.marks, 0);
+  const maxScore = total * 4;
+  const accuracy = total > 0 ? Math.round((correctCount / (correctCount + incorrectCount || 1)) * 100) : 0;
+  const attemptRate = total > 0 ? Math.round(((total - skippedCount) / total) * 100) : 0;
+
+  // Sort by attempt order for timeline
+  const byAttempt = [...analysis].sort((a, b) => a.attemptIdx - b.attemptIdx);
+  const answeredByAttempt = byAttempt.filter(a => a.answeredAt !== null);
+
+  // Score progression vs timeline (cumulative score over time in seconds from start)
+  const scoreTimeline = useMemo(() => {
+    let running = 0;
+    let prevScore = 0;
+    return answeredByAttempt.map((a, i) => {
+      running += a.marks;
+      const elapsed = Math.round((a.answeredAt - result.startTime) / 1000);
+      const dt = i > 0 ? (a.answeredAt - answeredByAttempt[i - 1].answeredAt) / 1000 : (a.answeredAt - result.startTime) / 1000;
+      const dScore = a.marks;
+      const speed = dt > 0 ? Math.round((dScore / dt) * 100) / 100 : 0; // d(score)/dt
+      prevScore = running;
+      return {
+        time: Math.round(elapsed / 60 * 10) / 10, // minutes
+        timeLabel: fmt(elapsed),
+        score: running,
+        speed,
+        q: `Q${a.questionNo}`,
+      };
+    });
+  }, [answeredByAttempt, result.startTime]);
+
+  // Cumulative accuracy by attempt order
+  const cumulativeAccuracy = (() => {
+    let c = 0, t = 0;
+    return byAttempt.map((a) => {
+      t++;
+      if (a.isCorrect) c++;
+      return { q: `Q${a.questionNo}`, idx: a.attemptIdx, accuracy: Math.round((c / t) * 100) };
+    });
+  })();
+
+  // Time per question by attempt order
+  const timeChartData = answeredByAttempt
+    .map((a) => ({ q: `Q${a.questionNo}`, time: a.timeGap!, marks: a.marks }));
+
+  const answeredTimes = analysis.filter(a => a.timeGap !== null).map(a => a.timeGap!);
+  const avgTime = answeredTimes.length > 0 ? Math.round(answeredTimes.reduce((a: number, b: number) => a + b, 0) / answeredTimes.length) : 0;
+  const fastestQ = answeredTimes.length > 0 ? Math.min(...answeredTimes) : 0;
+  const slowestQ = answeredTimes.length > 0 ? Math.max(...answeredTimes) : 0;
+
+  const correctTimes = analysis.filter(a => a.isCorrect && a.timeGap !== null).map(a => a.timeGap!);
+  const wrongTimes = analysis.filter(a => a.isWrong && a.timeGap !== null).map(a => a.timeGap!);
+  const avgCorrectTime = correctTimes.length > 0 ? Math.round(correctTimes.reduce((a: number, b: number) => a + b, 0) / correctTimes.length) : 0;
+  const avgWrongTime = wrongTimes.length > 0 ? Math.round(wrongTimes.reduce((a: number, b: number) => a + b, 0) / wrongTimes.length) : 0;
+
+  let bestStreak = 0, worstStreak = 0, curGood = 0, curBad = 0;
+  byAttempt.forEach((a) => {
+    if (a.isCorrect) { curGood++; bestStreak = Math.max(bestStreak, curGood); curBad = 0; }
+    else if (a.isWrong) { curBad++; worstStreak = Math.max(worstStreak, curBad); curGood = 0; }
+    else { curGood = 0; curBad = 0; }
+  });
+
+  const pieData = [
+    { name: 'Correct (+4)', value: correctCount, color: COLORS.correct },
+    { name: 'Incorrect (−1)', value: incorrectCount, color: COLORS.incorrect },
+    { name: 'Skipped (0)', value: skippedCount, color: COLORS.unanswered },
+  ].filter(d => d.value > 0);
+
+  const worstTimeWasted = analysis
+    .filter(a => a.isWrong && a.timeGap !== null)
+    .sort((a: any, b: any) => b.timeGap! - a.timeGap!)
+    .slice(0, 5);
+
+  // Annotation stats
+  const sectionAnnotations = annotations.filter(a => analysis.some(q => q.questionNo === a.questionNo));
+  const annotatedCount = sectionAnnotations.length;
+  const mistakeBreakdown = Object.entries(MISTAKE_TYPES).map(([type, meta]) => ({
+    type: type as MistakeType, ...meta,
+    count: sectionAnnotations.filter(a => a.mistakeType === type).length,
+  })).filter(b => b.count > 0);
+
+  return (
+    <>
+      {sectionLabel && (
+        <div className="text-lg font-bold font-mono text-primary">📂 {sectionLabel}</div>
+      )}
+
+      {/* Score summary */}
+      <div className="bg-card border-2 border-primary/30 rounded-lg p-5">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
+          <div>
+            <div className="text-3xl font-bold font-mono text-primary">{totalScore}</div>
+            <div className="text-xs text-muted-foreground mt-1">Score / {maxScore}</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold font-mono text-[hsl(var(--success))]">+{correctCount * 4}</div>
+            <div className="text-xs text-muted-foreground mt-1">{correctCount} Correct</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold font-mono text-destructive">−{incorrectCount}</div>
+            <div className="text-xs text-muted-foreground mt-1">{incorrectCount} Wrong</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold font-mono text-foreground">{accuracy}%</div>
+            <div className="text-xs text-muted-foreground mt-1">Accuracy</div>
+          </div>
+          <div>
+            <div className="text-2xl font-bold font-mono text-[hsl(var(--accent))]">{attemptRate}%</div>
+            <div className="text-xs text-muted-foreground mt-1">Attempt Rate</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Key stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Avg Time/Q', value: fmt(avgTime) },
+          { label: 'Fastest', value: fmt(fastestQ) },
+          { label: 'Slowest', value: fmt(slowestQ) },
+          { label: 'Skipped Marks', value: String(skippedCount * 4) },
+        ].map((m) => (
+          <div key={m.label} className="bg-card border border-border rounded-lg p-3 text-center">
+            <div className="text-lg font-bold font-mono text-foreground">{m.value}</div>
+            <div className="text-[10px] text-muted-foreground mt-1">{m.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Time efficiency */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-card border border-[hsl(var(--success))]/30 rounded-lg p-3 text-center">
+          <div className="text-lg font-bold font-mono text-[hsl(var(--success))]">{fmt(avgCorrectTime)}</div>
+          <div className="text-[10px] text-muted-foreground mt-1">Avg Time on Correct</div>
+        </div>
+        <div className="bg-card border border-destructive/30 rounded-lg p-3 text-center">
+          <div className="text-lg font-bold font-mono text-destructive">{fmt(avgWrongTime)}</div>
+          <div className="text-[10px] text-muted-foreground mt-1">Avg Time on Wrong</div>
+        </div>
+        <div className="bg-card border border-border rounded-lg p-3 text-center">
+          <div className="text-lg font-bold font-mono text-foreground">{bestStreak} ✓ / {worstStreak} ✗</div>
+          <div className="text-[10px] text-muted-foreground mt-1">Best / Worst Streak (attempt order)</div>
+        </div>
+      </div>
+
+      {annotatedCount > 0 && (
+        <div className="bg-card border border-[hsl(var(--accent))]/30 rounded-lg p-4">
+          <h3 className="font-mono text-sm text-foreground font-bold mb-3">🏷 Mistake Categorization ({annotatedCount})</h3>
+          <div className="flex gap-3 flex-wrap">
+            {mistakeBreakdown.map(b => (
+              <div key={b.type} className="bg-muted rounded-lg px-3 py-2 text-center">
+                <div className="text-lg">{b.icon}</div>
+                <div className="text-sm font-mono font-bold text-foreground">{b.count}</div>
+                <div className="text-[10px] text-muted-foreground">{b.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="font-mono text-sm text-muted-foreground font-bold mb-3">Score Breakdown</h3>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={75} dataKey="value" strokeWidth={2} stroke="hsl(var(--background))">
+                  {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                </Pie>
+                <Tooltip formatter={(value: number, name: string) => [`${value} questions`, name]} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Score Progression vs Timeline with d(score)/dt */}
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="font-mono text-sm text-muted-foreground font-bold mb-1">Score Progression vs Time</h3>
+          <p className="text-[10px] text-muted-foreground mb-2">Blue = cumulative score, Purple = solving speed (d(score)/dt)</p>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={scoreTimeline}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="time" tick={{ fontSize: 9 }} label={{ value: 'min', position: 'insideBottomRight', offset: -2, fontSize: 9 }} />
+                <YAxis yAxisId="score" tick={{ fontSize: 10 }} width={35} />
+                <YAxis yAxisId="speed" orientation="right" tick={{ fontSize: 9 }} width={30} />
+                <Tooltip formatter={(v: number, name: string) => [name === 'speed' ? `${v} pts/s` : v, name === 'speed' ? 'd(score)/dt' : 'Score']}
+                  labelFormatter={(l) => `${l} min`} />
+                <Legend />
+                <Area yAxisId="score" type="monotone" dataKey="score" stroke={COLORS.primary} fill={COLORS.primary} fillOpacity={0.1} strokeWidth={2} name="Score" />
+                <Line yAxisId="speed" type="monotone" dataKey="speed" stroke={COLORS.speed} strokeWidth={1.5} dot={false} name="Speed" />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="font-mono text-sm text-muted-foreground font-bold mb-1">Accuracy Trend (attempt order)</h3>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={cumulativeAccuracy}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="q" tick={{ fontSize: 7 }} interval={Math.max(0, Math.floor(cumulativeAccuracy.length / 10) - 1)} />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 10 }} width={35} />
+                <Tooltip formatter={(v: number) => [`${v}%`, 'Accuracy']} />
+                <Line type="monotone" dataKey="accuracy" stroke={COLORS.primary} strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="font-mono text-sm text-muted-foreground font-bold mb-1">Time Per Question (attempt order)</h3>
+          <div className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={timeChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="q" tick={{ fontSize: 7 }} interval={Math.max(0, Math.floor(timeChartData.length / 12) - 1)} />
+                <YAxis tick={{ fontSize: 10 }} width={35} />
+                <Tooltip formatter={(v: number) => [fmt(v), 'Time']} />
+                <Bar dataKey="time" radius={[2, 2, 0, 0]}>
+                  {timeChartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.marks > 0 ? COLORS.correct : entry.marks < 0 ? COLORS.incorrect : COLORS.unanswered} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Option distribution */}
+      <div className="bg-card border border-border rounded-lg p-4">
+        <h3 className="font-mono text-sm text-muted-foreground font-bold mb-3">Option Distribution: Yours vs Key</h3>
+        <div className="grid grid-cols-4 gap-4">
+          {(['A', 'B', 'C', 'D'] as const).map((opt) => {
+            const yours = analysis.filter(a => a.selected === opt).length;
+            const key = analysis.filter(a => a.correct === opt).length;
+            return (
+              <div key={opt} className="text-center border border-border rounded-lg p-3">
+                <div className="font-mono text-lg font-bold text-foreground">{opt}</div>
+                <div className="mt-2 text-sm">
+                  <div className="text-primary font-mono font-bold">{yours}</div>
+                  <div className="text-[10px] text-muted-foreground">Your picks</div>
+                </div>
+                <div className="h-px bg-border my-2" />
+                <div className="text-sm">
+                  <div className="text-[hsl(var(--success))] font-mono font-bold">{key}</div>
+                  <div className="text-[10px] text-muted-foreground">In key</div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Worst time wasters */}
+      {worstTimeWasted.length > 0 && (
+        <div className="bg-card border border-destructive/30 rounded-lg p-4">
+          <h3 className="font-mono text-sm text-destructive font-bold mb-3">⚠ Most Time Wasted on Wrong Answers</h3>
+          <div className="space-y-2">
+            {worstTimeWasted.map((a: any) => (
+              <div key={a.questionNo} className="flex items-center justify-between py-2 px-3 bg-destructive/5 rounded">
+                <span className="font-mono text-sm font-bold">Q.{a.questionNo}</span>
+                <span className="text-xs text-muted-foreground">
+                  You: <strong className="text-destructive">{a.selected}</strong> → Correct: <strong className="text-[hsl(var(--success))]">{a.correct}</strong>
+                </span>
+                <span className="font-mono text-sm text-destructive font-bold">{fmt(a.timeGap!)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Question-wise breakdown */}
+      <QuestionTable
+        analysis={analysis}
+        fmt={fmt}
+        testId={testId}
+        testName={testName}
+        annotations={annotations.filter(a => analysis.some((q: any) => q.questionNo === a.questionNo))}
+        annotatingQ={annotatingQ}
+        setAnnotatingQ={setAnnotatingQ}
+        onAnnotationSaved={onAnnotationSaved}
+      />
+    </>
+  );
+}
+
+type SortMode = 'default' | 'attempt' | 'time-desc' | 'time-asc' | 'wrong-slow' | 'wrong-only' | 'correct-only' | 'skipped-only' | 'annotated';
 
 const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: 'default', label: '# Order' },
+  { value: 'attempt', label: '🕐 Attempt Order' },
   { value: 'time-desc', label: '⏱ Slowest' },
   { value: 'time-asc', label: '⚡ Fastest' },
   { value: 'wrong-slow', label: '✗ Wrong + Slow' },
@@ -479,6 +499,7 @@ function QuestionTable({
   const sorted = useMemo(() => {
     let items = [...analysis];
     switch (sortMode) {
+      case 'attempt': return items.sort((a, b) => a.attemptIdx - b.attemptIdx);
       case 'time-desc': return items.filter(a => a.timeGap != null).sort((a, b) => b.timeGap - a.timeGap);
       case 'time-asc': return items.filter(a => a.timeGap != null).sort((a, b) => a.timeGap - b.timeGap);
       case 'wrong-slow': return items.filter(a => a.isWrong && a.timeGap != null).sort((a, b) => b.timeGap - a.timeGap);
@@ -506,7 +527,7 @@ function QuestionTable({
           ))}
         </div>
       </div>
-      <p className="px-4 py-2 text-[10px] text-muted-foreground bg-accent/5 border-b border-border">
+      <p className="px-4 py-2 text-[10px] text-muted-foreground bg-[hsl(var(--accent))]/5 border-b border-border">
         💡 Click on any question to annotate — add notes, tags, categorize mistakes, or paste a question image
       </p>
       {sorted.length === 0 ? (
@@ -525,6 +546,9 @@ function QuestionTable({
                   } ${idx % 2 !== 0 ? 'bg-muted/10' : ''}`}
                 >
                   <span className="font-mono text-sm font-bold text-muted-foreground w-14 text-right shrink-0">{item.questionNo}</span>
+                  {sortMode === 'attempt' && (
+                    <span className="font-mono text-[10px] text-muted-foreground w-8">#{item.attemptIdx}</span>
+                  )}
                   <span className={`font-mono font-bold w-8 ${!item.selected ? 'text-muted-foreground/40' : 'text-foreground'}`}>{item.selected ?? '—'}</span>
                   <span className="font-mono font-bold w-8 text-primary">{item.correct ?? '—'}</span>
                   <span className="font-mono text-xs font-bold w-10">
@@ -540,9 +564,7 @@ function QuestionTable({
                       {ann.imageData && ' 🖼'}
                     </span>
                   )}
-                  {!ann && (
-                    <span className="ml-auto text-[10px] text-muted-foreground">+ annotate</span>
-                  )}
+                  {!ann && <span className="ml-auto text-[10px] text-muted-foreground">+ annotate</span>}
                 </div>
                 {isAnnotating && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -585,7 +607,14 @@ function AnnotationEditor({
   const [imageData, setImageData] = useState<string | undefined>(existing?.imageData);
   const [tags, setTags] = useState<string[]>(existing?.tags || []);
   const [tagInput, setTagInput] = useState('');
-  const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [lightbox, setLightbox] = useState(false);
+
+  const handleImageFile = useCallback((file: File) => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = () => setImageData(reader.result as string);
+    reader.readAsDataURL(file);
+  }, []);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     const items = e.clipboardData?.items;
@@ -594,24 +623,17 @@ function AnnotationEditor({
       if (item.type.startsWith('image/')) {
         e.preventDefault();
         const file = item.getAsFile();
-        if (!file) continue;
-        const reader = new FileReader();
-        reader.onload = () => setImageData(reader.result as string);
-        reader.readAsDataURL(file);
+        if (file) handleImageFile(file);
         return;
       }
     }
-  }, []);
+  }, [handleImageFile]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file?.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = () => setImageData(reader.result as string);
-      reader.readAsDataURL(file);
-    }
-  }, []);
+    if (file) handleImageFile(file);
+  }, [handleImageFile]);
 
   const addTag = (raw: string) => {
     const t = raw.trim().toLowerCase();
@@ -621,33 +643,18 @@ function AnnotationEditor({
 
   const handleSave = () => {
     saveAnnotation({
-      testId,
-      testName,
-      questionNo,
-      mistakeType,
-      notes,
-      imageData,
-      selected,
-      correct,
-      tags,
-      createdAt: existing?.createdAt || Date.now(),
-      updatedAt: Date.now(),
+      testId, testName, questionNo, mistakeType, notes, imageData, selected, correct, tags,
+      createdAt: existing?.createdAt || Date.now(), updatedAt: Date.now(),
     });
     onSave();
   };
 
   return (
-    <div
-      className="bg-muted/50 border-b border-border px-4 py-3 space-y-3"
-      onPaste={handlePaste}
-      onDrop={handleDrop}
-      onDragOver={(e) => e.preventDefault()}
-    >
+    <div className="bg-muted/50 border-b border-border px-4 py-3 space-y-3" onPaste={handlePaste} onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
       <div className="text-xs font-mono text-muted-foreground">
         Annotate Q.{questionNo} — You: <strong className="text-destructive">{selected}</strong> → Correct: <strong className="text-[hsl(var(--success))]">{correct}</strong>
       </div>
 
-      {/* Mistake type */}
       <div>
         <label className="text-[10px] text-muted-foreground font-bold">MISTAKE TYPE</label>
         <div className="flex gap-1.5 flex-wrap mt-1">
@@ -662,18 +669,12 @@ function AnnotationEditor({
         </div>
       </div>
 
-      {/* Notes */}
       <div>
         <label className="text-[10px] text-muted-foreground font-bold">NOTES</label>
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="Why was this wrong? What concept did you miss? What should you remember?"
-          className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-background text-foreground text-xs min-h-[80px] font-mono focus:outline-none focus:ring-2 focus:ring-primary"
-        />
+        <textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Why was this wrong?"
+          className="w-full mt-1 px-3 py-2 border border-border rounded-lg bg-background text-foreground text-xs min-h-[80px] font-mono focus:outline-none focus:ring-2 focus:ring-ring" />
       </div>
 
-      {/* Tags */}
       <div>
         <label className="text-[10px] text-muted-foreground font-bold">TAGS</label>
         <div className="flex flex-wrap gap-1.5 mt-1">
@@ -683,54 +684,35 @@ function AnnotationEditor({
               <button onClick={() => setTags(tags.filter(t => t !== tag))} className="hover:text-destructive">×</button>
             </span>
           ))}
-          <input
-            type="text"
-            value={tagInput}
-            onChange={(e) => setTagInput(e.target.value)}
+          <input type="text" value={tagInput} onChange={(e) => setTagInput(e.target.value)}
             onKeyDown={(e) => {
               if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) { e.preventDefault(); addTag(tagInput); }
               if (e.key === 'Backspace' && !tagInput && tags.length) setTags(tags.slice(0, -1));
             }}
             onBlur={() => { if (tagInput.trim()) addTag(tagInput); }}
-            placeholder="Add tags (e.g. trigonometry, vectors)..."
-            className="flex-1 min-w-[120px] h-7 px-2 bg-transparent text-foreground text-[11px] font-mono focus:outline-none"
-          />
+            placeholder="Add tags..."
+            className="flex-1 min-w-[120px] h-7 px-2 bg-transparent text-foreground text-[11px] font-mono focus:outline-none" />
         </div>
       </div>
 
-      {/* Image */}
       <div>
         <label className="text-[10px] text-muted-foreground font-bold">QUESTION IMAGE</label>
         <div className="mt-1 border-2 border-dashed border-border rounded-lg p-4 text-center text-xs text-muted-foreground">
           {imageData ? (
             <div className="space-y-2">
-              <img
-                src={imageData}
-                alt="Question"
-                className="max-w-full max-h-48 mx-auto rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
-                onClick={() => setViewingImage(imageData)}
-              />
-              <button onClick={() => setImageData(undefined)} className="text-destructive text-[10px] hover:underline">Remove image</button>
+              <img src={imageData} alt="Question" className="max-w-full max-h-48 mx-auto rounded-lg border border-border cursor-pointer hover:opacity-80" onClick={() => setLightbox(true)} />
+              <div className="flex gap-2 justify-center">
+                <button onClick={() => setLightbox(true)} className="text-primary text-[10px] hover:underline">🔍 View Full</button>
+                <button onClick={() => setImageData(undefined)} className="text-destructive text-[10px] hover:underline">Remove</button>
+              </div>
             </div>
           ) : (
-            <div>
+            <div className="space-y-2">
               <div className="text-2xl mb-1">📋</div>
-              <div>Paste (Ctrl+V), drag & drop, or browse an image</div>
-              <label className="mt-2 inline-block px-3 py-1.5 bg-primary text-primary-foreground rounded text-[11px] font-bold cursor-pointer hover:opacity-90">
-                Browse File
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file?.type.startsWith('image/')) {
-                      const reader = new FileReader();
-                      reader.onload = () => setImageData(reader.result as string);
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                />
+              <div>Paste (Ctrl+V), drag & drop, or browse</div>
+              <label className="inline-block px-3 py-1.5 bg-primary text-primary-foreground rounded text-[11px] font-bold cursor-pointer hover:opacity-90">
+                📁 Browse File
+                <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }} />
               </label>
             </div>
           )}
@@ -744,14 +726,11 @@ function AnnotationEditor({
         <button onClick={onCancel} className="px-4 py-2 border border-border rounded-lg text-xs text-foreground hover:bg-muted">Cancel</button>
       </div>
 
-      {/* Image lightbox */}
-      {viewingImage && (
-        <div
-          className="fixed inset-0 z-[100] bg-background/90 backdrop-blur flex items-center justify-center p-4 cursor-pointer"
-          onClick={() => setViewingImage(null)}
-        >
-          <img src={viewingImage} alt="Full view" className="max-w-full max-h-full rounded-xl shadow-2xl border border-border" />
-          <button className="absolute top-4 right-4 text-foreground bg-card border border-border rounded-full p-2 hover:bg-muted">✕</button>
+      {/* Lightbox */}
+      {lightbox && imageData && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background/90 backdrop-blur-sm" onClick={() => setLightbox(false)}>
+          <img src={imageData} alt="Question" className="max-w-[90vw] max-h-[90vh] rounded-lg border border-border shadow-2xl" />
+          <button onClick={() => setLightbox(false)} className="absolute top-4 right-4 text-foreground text-2xl font-bold hover:text-destructive">✕</button>
         </div>
       )}
     </div>
