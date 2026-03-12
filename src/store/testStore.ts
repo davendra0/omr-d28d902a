@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import type { TestConfig, QuestionResponse, TestResult, AnswerKey, Option } from '@/types/test';
+import type { TestConfig, QuestionResponse, TestResult, AnswerKey, Option, MarkType } from '@/types/test';
+import { DEFAULT_DISPLAY_PREFS } from '@/types/test';
 
 interface TestStore {
   config: TestConfig | null;
@@ -13,6 +14,7 @@ interface TestStore {
   startTest: () => void;
   selectOption: (questionNo: number, option: Option) => void;
   toggleReview: (questionNo: number) => void;
+  toggleMark: (questionNo: number, mark: MarkType) => void;
   endTest: () => void;
   setAnswerKey: (key: AnswerKey) => void;
   setResult: (result: TestResult) => void;
@@ -28,16 +30,23 @@ export const useTestStore = create<TestStore>((set, get) => ({
   answerKey: null,
 
   setConfig: (config) => {
+    // Ensure config has sections and displayPrefs (backward compat)
+    const fullConfig: TestConfig = {
+      ...config,
+      sections: config.sections || [],
+      displayPrefs: config.displayPrefs || DEFAULT_DISPLAY_PREFS,
+    };
     const responses: QuestionResponse[] = [];
-    for (let i = 0; i < config.totalQuestions; i++) {
+    for (let i = 0; i < fullConfig.totalQuestions; i++) {
       responses.push({
-        questionNo: config.startFrom + i,
+        questionNo: fullConfig.startFrom + i,
         selected: null,
         markedForReview: false,
+        marks: [],
         answeredAt: null,
       });
     }
-    set({ config, responses });
+    set({ config: fullConfig, responses });
   },
 
   startTest: () => set({ startTime: Date.now() }),
@@ -61,6 +70,18 @@ export const useTestStore = create<TestStore>((set, get) => ({
           ? { ...r, markedForReview: !r.markedForReview }
           : r
       ),
+    });
+  },
+
+  toggleMark: (questionNo, mark) => {
+    const { responses } = get();
+    set({
+      responses: responses.map((r) => {
+        if (r.questionNo !== questionNo) return r;
+        const has = r.marks.includes(mark);
+        const newMarks = has ? r.marks.filter(m => m !== mark) : [...r.marks, mark];
+        return { ...r, marks: newMarks, markedForReview: newMarks.includes('review') };
+      }),
     });
   },
 

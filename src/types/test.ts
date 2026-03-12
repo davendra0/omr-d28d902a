@@ -1,9 +1,43 @@
 export type Option = 'A' | 'B' | 'C' | 'D' | null;
 
+export type MarkType = 'review' | 'later' | 'doubt' | 'check';
+
+export const MARK_ICONS: Record<MarkType, { icon: string; label: string; color: string }> = {
+  review: { icon: '⚑', label: 'Review', color: 'text-[hsl(var(--review))]' },
+  later: { icon: '⏳', label: 'Attempt Later', color: 'text-[hsl(var(--accent))]' },
+  doubt: { icon: '❓', label: 'Doubt', color: 'text-destructive' },
+  check: { icon: '👁', label: 'Check if time', color: 'text-primary' },
+};
+
+export interface TestSection {
+  name: string;
+  startQ: number;
+  endQ: number;
+}
+
+export interface DisplayPrefs {
+  showCountdown: boolean;
+  showWallClock: boolean;
+  showQuestionsLeft: boolean;
+  showAnswered: boolean;
+  showMarked: boolean;
+  showQuestionRange: boolean;
+}
+
+export const DEFAULT_DISPLAY_PREFS: DisplayPrefs = {
+  showCountdown: true,
+  showWallClock: false,
+  showQuestionsLeft: true,
+  showAnswered: true,
+  showMarked: true,
+  showQuestionRange: true,
+};
+
 export interface QuestionResponse {
   questionNo: number;
   selected: Option;
-  markedForReview: boolean;
+  markedForReview: boolean; // kept for backward compat
+  marks: MarkType[];
   answeredAt: number | null; // timestamp
 }
 
@@ -11,6 +45,8 @@ export interface TestConfig {
   totalQuestions: number;
   startFrom: number;
   timeInMinutes: number;
+  sections: TestSection[];
+  displayPrefs: DisplayPrefs;
 }
 
 export interface TestResult {
