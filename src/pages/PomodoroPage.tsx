@@ -55,7 +55,7 @@ const PomodoroPage = () => {
   };
 
   const completePhase = useCallback(() => {
-    setRunning(false);
+    timer.setRunning(false);
     const session: PomodoroSession = {
       id: crypto.randomUUID(),
       type: phase,
@@ -71,20 +71,17 @@ const PomodoroPage = () => {
 
     if (phase === 'focus') {
       const newCount = sessionCount + 1;
-      setSessionCount(newCount);
+      timer.setSessionCount(newCount);
       if (newCount % settings.sessionsBeforeLong === 0) {
-        setPhase('long_break');
-        setSecondsLeft(settings.longBreakMinutes * 60);
-        if (settings.autoStartBreaks) setRunning(true);
+        timer.setPhase('long_break', settings.longBreakMinutes * 60);
+        if (settings.autoStartBreaks) timer.setRunning(true);
       } else {
-        setPhase('short_break');
-        setSecondsLeft(settings.shortBreakMinutes * 60);
-        if (settings.autoStartBreaks) setRunning(true);
+        timer.setPhase('short_break', settings.shortBreakMinutes * 60);
+        if (settings.autoStartBreaks) timer.setRunning(true);
       }
     } else {
-      setPhase('focus');
-      setSecondsLeft(settings.focusMinutes * 60);
-      if (settings.autoStartFocus) setRunning(true);
+      timer.setPhase('focus', settings.focusMinutes * 60);
+      if (settings.autoStartFocus) timer.setRunning(true);
     }
 
     try {
@@ -98,7 +95,7 @@ const PomodoroPage = () => {
       osc.start();
       osc.stop(ctx.currentTime + 0.3);
     } catch {}
-  }, [phase, sessionCount, settings, sessionLabel, sessionSubject, sessionChapter]);
+  }, [phase, sessionCount, settings, sessionLabel, sessionSubject, sessionChapter, timer]);
 
   useEffect(() => {
     if (!running) {
