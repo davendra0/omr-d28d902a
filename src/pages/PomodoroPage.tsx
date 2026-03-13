@@ -112,10 +112,9 @@ const PomodoroPage = () => {
   }, [running, completePhase, timer]);
 
   const resetTimer = () => {
-    setRunning(false);
-    setPhase('focus');
-    setSessionCount(0);
-    setSecondsLeft(settings.focusMinutes * 60);
+    timer.setRunning(false);
+    timer.setPhase('focus', settings.focusMinutes * 60);
+    timer.setSessionCount(0);
   };
 
   const skipPhase = () => completePhase();
