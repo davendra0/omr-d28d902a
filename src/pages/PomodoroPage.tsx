@@ -20,9 +20,12 @@ const PomodoroPage = () => {
 
   const [minimal, setMinimal] = useState(false);
   const [hideTime, setHideTime] = useState(false);
-  const [sessionLabel, setSessionLabel] = useState('');
-  const [sessionSubject, setSessionSubject] = useState('');
-  const [sessionChapter, setSessionChapter] = useState('');
+  const sessionLabel = timer.label;
+  const sessionSubject = timer.subject;
+  const sessionChapter = timer.chapter;
+  const setSessionLabel = timer.setLabel;
+  const setSessionSubject = timer.setSubject;
+  const setSessionChapter = timer.setChapter;
   const [dailyGoal, setDailyGoal] = useState(() => {
     try { return parseInt(localStorage.getItem('pomo_daily_goal') || '120'); } catch { return 120; }
   });
