@@ -190,23 +190,41 @@ function AnalysisContent({
   const byAttempt = [...analysis].sort((a, b) => a.attemptIdx - b.attemptIdx);
   const answeredByAttempt = byAttempt.filter(a => a.answeredAt !== null);
 
-  // Score progression vs timeline (cumulative score over time in seconds from start)
+  // Score progression vs timeline - smoothed by 1-min buckets for speed
   const scoreTimeline = useMemo(() => {
+    if (answeredByAttempt.length === 0) return [];
+    
+    // First build raw data points
     let running = 0;
-    let prevScore = 0;
-    return answeredByAttempt.map((a, i) => {
+    const raw = answeredByAttempt.map((a) => {
       running += a.marks;
-      const elapsed = Math.round((a.answeredAt - result.startTime) / 1000);
-      const dt = i > 0 ? (a.answeredAt - answeredByAttempt[i - 1].answeredAt) / 1000 : (a.answeredAt - result.startTime) / 1000;
-      const dScore = a.marks;
-      const speed = dt > 0 ? Math.round((dScore / dt) * 100) / 100 : 0; // d(score)/dt
-      prevScore = running;
+      const elapsed = (a.answeredAt - result.startTime) / 1000;
       return {
-        time: Math.round(elapsed / 60 * 10) / 10, // minutes
-        timeLabel: fmt(elapsed),
+        time: Math.round(elapsed / 60 * 10) / 10,
         score: running,
-        speed,
-        q: `Q${a.questionNo}`,
+        answeredAt: a.answeredAt,
+        questionNo: a.questionNo,
+      };
+    });
+
+    // Bucket by 1-minute intervals for speed (ques/min)
+    const totalMins = Math.ceil((raw[raw.length - 1].time) || 1);
+    const buckets = new Map<number, number>(); // minute -> count of questions
+    answeredByAttempt.forEach(a => {
+      const min = Math.floor((a.answeredAt - result.startTime) / 60000);
+      buckets.set(min, (buckets.get(min) || 0) + 1);
+    });
+
+    // Build timeline with smoothed speed
+    return raw.map((point) => {
+      const minuteBucket = Math.floor(point.time);
+      const quesPerMin = buckets.get(minuteBucket) || 0;
+      return {
+        time: point.time,
+        timeLabel: `${point.time.toFixed(1)}m`,
+        score: point.score,
+        speed: quesPerMin, // questions per minute
+        q: `Q${point.questionNo}`,
       };
     });
   }, [answeredByAttempt, result.startTime]);
