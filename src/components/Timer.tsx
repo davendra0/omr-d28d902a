@@ -5,14 +5,16 @@ interface TimerProps {
   onTimeUp: () => void;
   showCountdown?: boolean;
   showWallClock?: boolean;
+  wallClockStartTime?: string; // HH:MM
 }
 
-const Timer = ({ totalSeconds, onTimeUp, showCountdown = true, showWallClock = false }: TimerProps) => {
+const Timer = ({ totalSeconds, onTimeUp, showCountdown = true, showWallClock = false, wallClockStartTime }: TimerProps) => {
   const [remaining, setRemaining] = useState(totalSeconds);
   const [paused, setPaused] = useState(false);
   const [totalPausedTime, setTotalPausedTime] = useState(0);
   const [wallClock, setWallClock] = useState(new Date());
   const pauseStartRef = useRef<number | null>(null);
+  const testStartRef = useRef(Date.now());
 
   useEffect(() => {
     if (paused) {
@@ -34,7 +36,6 @@ const Timer = ({ totalSeconds, onTimeUp, showCountdown = true, showWallClock = f
     return () => clearInterval(id);
   }, [remaining, onTimeUp, paused]);
 
-  // Wall clock update when paused too
   useEffect(() => {
     if (!paused) return;
     const id = setInterval(() => setWallClock(new Date()), 1000);
@@ -61,7 +62,19 @@ const Timer = ({ totalSeconds, onTimeUp, showCountdown = true, showWallClock = f
   }, [paused]);
 
   const displayPausedTotal = totalPausedTime + livePause;
-  const wallStr = `${pad(wallClock.getHours())}:${pad(wallClock.getMinutes())}`;
+
+  // Wall clock: if wallClockStartTime is set, compute simulated time based on elapsed
+  let wallStr: string;
+  if (wallClockStartTime) {
+    const [startH, startM] = wallClockStartTime.split(':').map(Number);
+    const elapsedSecs = totalSeconds - remaining;
+    const totalMins = startH * 60 + startM + Math.floor(elapsedSecs / 60);
+    const h = Math.floor(totalMins / 60) % 24;
+    const m = totalMins % 60;
+    wallStr = `${pad(h)}:${pad(m)}`;
+  } else {
+    wallStr = `${pad(wallClock.getHours())}:${pad(wallClock.getMinutes())}`;
+  }
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
