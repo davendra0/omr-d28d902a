@@ -19,7 +19,7 @@ const COLORS = {
   unanswered: 'hsl(215, 16%, 47%)',
   primary: 'hsl(221, 83%, 53%)',
   warn: 'hsl(38, 92%, 50%)',
-  speed: 'hsl(280, 70%, 55%)',
+  speed: 'hsl(142, 71%, 45%)', // Green for d(score)/dt
 };
 
 const AnalysisPage = () => {
