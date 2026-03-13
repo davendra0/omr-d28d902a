@@ -14,6 +14,8 @@ type Tab = 'quick' | 'plan' | 'upcoming' | 'history';
 
 interface SectionInput { name: string; startQ: string; endQ: string }
 
+const AUTOSAVE_KEY = 'omr_autosave';
+
 const SetupPage = () => {
   const navigate = useNavigate();
   const { setConfig, startTest } = useTestStore();
@@ -25,6 +27,7 @@ const SetupPage = () => {
   const [timeInMinutes, setTimeInMinutes] = useState('');
   const [qSections, setQSections] = useState<SectionInput[]>([]);
   const [qDisplayPrefs, setQDisplayPrefs] = useState<DisplayPrefs>({ ...DEFAULT_DISPLAY_PREFS });
+  const [wallClockStart, setWallClockStart] = useState('');
 
   // Plan state
   const [planName, setPlanName] = useState('');
@@ -34,21 +37,30 @@ const SetupPage = () => {
   const [planDate, setPlanDate] = useState<Date | undefined>(undefined);
   const [planSections, setPlanSections] = useState<SectionInput[]>([]);
   const [planDisplayPrefs, setPlanDisplayPrefs] = useState<DisplayPrefs>({ ...DEFAULT_DISPLAY_PREFS });
+  const [planWallClockStart, setPlanWallClockStart] = useState('');
 
   // Data
   const [planned, setPlanned] = useState<PlannedTest[]>([]);
   const [savedTests, setSavedTests] = useState<SavedTest[]>([]);
 
+  // Autosave recovery
+  const [autosave, setAutosave] = useState<any>(null);
+
   useEffect(() => {
     setPlanned(getPlannedTests());
     setSavedTests(getSavedTests());
+    // Check for autosave
+    try {
+      const raw = localStorage.getItem(AUTOSAVE_KEY);
+      if (raw) setAutosave(JSON.parse(raw));
+    } catch {}
   }, []);
 
   const upcomingTests = planned.filter(t => !t.completed).sort((a, b) => new Date(a.scheduledDate).getTime() - new Date(b.scheduledDate).getTime());
   const todayStr = format(new Date(), 'yyyy-MM-dd');
   const todayTests = upcomingTests.filter(t => t.scheduledDate === todayStr);
 
-  const buildSections = (inputs: SectionInput[], fallbackStart: number, fallbackTotal: number): TestSection[] => {
+  const buildSections = (inputs: SectionInput[]): TestSection[] => {
     const valid = inputs.filter(s => s.name.trim() && parseInt(s.startQ) && parseInt(s.endQ));
     if (valid.length === 0) return [];
     return valid.map(s => ({ name: s.name.trim(), startQ: parseInt(s.startQ), endQ: parseInt(s.endQ) }));
@@ -59,13 +71,32 @@ const SetupPage = () => {
     const start = parseInt(startFrom) || 1;
     const time = parseInt(timeInMinutes);
     if (!total || total < 1 || !time || time < 1) return;
+    localStorage.removeItem(AUTOSAVE_KEY);
     setConfig({
       totalQuestions: total, startFrom: start, timeInMinutes: time,
-      sections: buildSections(qSections, start, total),
+      sections: buildSections(qSections),
       displayPrefs: qDisplayPrefs,
+      wallClockStartTime: wallClockStart || undefined,
     });
     startTest();
     navigate('/test');
+  };
+
+  const handleResumeAutosave = () => {
+    if (!autosave) return;
+    const store = useTestStore.getState();
+    store.setConfig(autosave.config);
+    // Restore responses
+    useTestStore.setState({
+      responses: autosave.responses,
+      startTime: autosave.startTime,
+    });
+    navigate('/test');
+  };
+
+  const handleDismissAutosave = () => {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    setAutosave(null);
   };
 
   const handlePlanTest = () => {
@@ -84,6 +115,7 @@ const SetupPage = () => {
   };
 
   const handleStartPlanned = (test: PlannedTest) => {
+    localStorage.removeItem(AUTOSAVE_KEY);
     setConfig({
       totalQuestions: test.totalQuestions, startFrom: test.startFrom, timeInMinutes: test.timeInMinutes,
       sections: [], displayPrefs: { ...DEFAULT_DISPLAY_PREFS },
@@ -112,6 +144,20 @@ const SetupPage = () => {
         <h1 className="text-2xl font-bold font-mono tracking-tight text-foreground">📝 OMR Test</h1>
         <p className="text-muted-foreground mt-1 text-sm">Configure, plan, and track your tests</p>
       </div>
+
+      {/* Autosave recovery banner */}
+      {autosave && (
+        <div className="bg-[hsl(var(--review))]/10 border border-[hsl(var(--review))]/30 rounded-lg p-4">
+          <div className="text-sm font-bold text-[hsl(var(--review))] font-mono mb-1">💾 Unsaved Test Found</div>
+          <p className="text-xs text-muted-foreground mb-3">
+            {autosave.config.totalQuestions}Q test from {new Date(autosave.savedAt).toLocaleString()}
+          </p>
+          <div className="flex gap-2">
+            <button onClick={handleResumeAutosave} className="px-3 py-1.5 bg-primary text-primary-foreground rounded font-bold text-xs hover:opacity-90">▶ Resume</button>
+            <button onClick={handleDismissAutosave} className="px-3 py-1.5 border border-border rounded text-xs text-muted-foreground hover:bg-muted">Dismiss</button>
+          </div>
+        </div>
+      )}
 
       {todayTests.length > 0 && (
         <div className="bg-primary/10 border border-primary/30 rounded-lg p-4">
@@ -165,10 +211,15 @@ const SetupPage = () => {
               className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
 
-          {/* Sections */}
-          <SectionBuilder sections={qSections} onChange={setQSections} />
+          {/* Wall clock start */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">🕐 Wall Clock Start Time (optional)</label>
+            <input type="time" value={wallClockStart} onChange={(e) => setWallClockStart(e.target.value)}
+              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+            <p className="text-xs text-muted-foreground mt-1">Set if you want the wall clock to start from a specific time (e.g. 14:00 for NEET)</p>
+          </div>
 
-          {/* Display Preferences */}
+          <SectionBuilder sections={qSections} onChange={setQSections} />
           <DisplayPrefsEditor prefs={qDisplayPrefs} onChange={setQDisplayPrefs} />
 
           <div className="text-xs text-muted-foreground bg-muted p-3 rounded">
@@ -219,6 +270,13 @@ const SetupPage = () => {
                 <Calendar mode="single" selected={planDate} onSelect={setPlanDate} disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} initialFocus className={cn("p-3 pointer-events-auto")} />
               </PopoverContent>
             </Popover>
+          </div>
+
+          {/* Wall clock start */}
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">🕐 Wall Clock Start Time (optional)</label>
+            <input type="time" value={planWallClockStart} onChange={(e) => setPlanWallClockStart(e.target.value)}
+              className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
 
           <SectionBuilder sections={planSections} onChange={setPlanSections} />
@@ -289,7 +347,7 @@ function SectionBuilder({ sections, onChange }: { sections: SectionInput[]; onCh
         <button onClick={addSection} className="px-2 py-1 text-xs font-bold font-mono bg-muted text-foreground rounded hover:bg-muted/80 transition-colors">+ Add Section</button>
       </div>
       {sections.length === 0 && (
-        <p className="text-xs text-muted-foreground italic">No sections — the entire paper is one block. Add sections to divide by subjects (e.g. Physics Q1–45, Chemistry Q46–90).</p>
+        <p className="text-xs text-muted-foreground italic">No sections — the entire paper is one block. Add sections to divide by subjects.</p>
       )}
       {sections.map((s, i) => (
         <div key={i} className="flex gap-2 items-end">
@@ -331,10 +389,10 @@ function DisplayPrefsEditor({ prefs, onChange }: { prefs: DisplayPrefs; onChange
       <p className="text-xs text-muted-foreground italic">Choose what to show in the test header</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {items.map(item => (
-          <label key={item.key} className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded cursor-pointer hover:bg-muted transition-colors">
-            <input type="checkbox" checked={prefs[item.key]} onChange={() => toggle(item.key)}
-              className="w-4 h-4 accent-[hsl(var(--primary))] rounded" />
-            <span className="text-xs font-mono text-foreground">{item.icon} {item.label}</span>
+          <label key={item.key} className="flex items-center gap-2 text-sm text-foreground cursor-pointer p-2 rounded hover:bg-muted transition-colors">
+            <input type="checkbox" checked={prefs[item.key]} onChange={() => toggle(item.key)} className="rounded border-border" />
+            <span className="text-base">{item.icon}</span>
+            <span className="text-xs">{item.label}</span>
           </label>
         ))}
       </div>

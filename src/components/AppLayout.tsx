@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { NavLink } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import DarkModeToggle from '@/components/DarkModeToggle';
 import { getWorkspaceName, setWorkspaceName } from '@/lib/workspaceStore';
+import { getShortcuts, matchesShortcut, ACTION_ROUTES } from '@/lib/shortcutStore';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -26,6 +27,44 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   const [workspaceName, setName] = useState(getWorkspaceName);
   const [editingName, setEditingName] = useState(false);
   const [tempName, setTempName] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Don't trigger in input/textarea
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      const shortcuts = getShortcuts();
+      for (const [action, shortcut] of Object.entries(shortcuts)) {
+        if (matchesShortcut(e, shortcut)) {
+          e.preventDefault();
+          const route = ACTION_ROUTES[action];
+          if (route) navigate(route);
+          return;
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [navigate]);
+
+  // Mobile: clicking the hamburger icon toggles sidebar
+  // Clicking nav icon on active route toggles sidebar collapse on desktop
+  const handleNavClick = (path: string) => {
+    if (window.innerWidth < 1024) {
+      // Mobile: just navigate and close
+      setSidebarOpen(false);
+    } else {
+      // Desktop: if already on this route, toggle collapsed
+      if (location.pathname === path || (path === '/omr' && location.pathname.startsWith('/omr'))) {
+        setCollapsed(!collapsed);
+        return; // don't navigate
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -57,48 +96,51 @@ const AppLayout = ({ children }: AppLayoutProps) => {
               />
             </form>
           ) : (
-            <NavLink to="/" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
+            <button onClick={() => { navigate('/'); if (window.innerWidth < 1024) setSidebarOpen(false); }} className="flex items-center gap-2">
               <span className="text-xl">⚡</span>
               {!collapsed && (
                 <span
                   className="font-mono font-bold text-foreground text-lg tracking-tight cursor-pointer hover:text-primary transition-colors"
-                  onDoubleClick={(e) => { e.preventDefault(); setTempName(workspaceName); setEditingName(true); }}
+                  onDoubleClick={(e) => { e.preventDefault(); e.stopPropagation(); setTempName(workspaceName); setEditingName(true); }}
                   title="Double-click to rename"
                 >
                   {workspaceName}
                 </span>
               )}
-            </NavLink>
+            </button>
           )}
         </div>
 
         <nav className="flex-1 p-3 space-y-1">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/'}
-              onClick={() => setSidebarOpen(false)}
-              title={collapsed ? item.label : undefined}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+          {navItems.map((item) => {
+            const isActive = item.path === '/' 
+              ? location.pathname === '/' 
+              : location.pathname.startsWith(item.path);
+            return (
+              <button
+                key={item.path}
+                onClick={() => {
+                  handleNavClick(item.path);
+                  navigate(item.path);
+                }}
+                title={collapsed ? item.label : undefined}
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors w-full text-left',
                   collapsed && 'justify-center px-0',
                   isActive
                     ? 'bg-primary/10 text-primary font-semibold'
                     : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                )
-              }
-            >
-              <span className="text-base">{item.icon}</span>
-              {!collapsed && <span>{item.label}</span>}
-            </NavLink>
-          ))}
+                )}
+              >
+                <span className="text-base">{item.icon}</span>
+                {!collapsed && <span>{item.label}</span>}
+              </button>
+            );
+          })}
         </nav>
 
         <div className="p-3 border-t border-border space-y-2">
           <DarkModeToggle collapsed={collapsed} />
-          {/* Collapse toggle - visible on desktop */}
           <button
             onClick={() => setCollapsed(!collapsed)}
             className="hidden lg:flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -125,7 +167,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
         {/* Mobile header */}
         <header className="lg:hidden sticky top-0 z-30 bg-card/80 backdrop-blur border-b border-border px-4 h-12 flex items-center gap-3">
           <button
-            onClick={() => setSidebarOpen(true)}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
             className="text-foreground hover:bg-muted p-1.5 rounded-md transition-colors"
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
