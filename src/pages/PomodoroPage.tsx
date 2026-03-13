@@ -203,7 +203,7 @@ const PomodoroPage = () => {
         <div className="flex gap-1 bg-muted rounded-lg p-0.5">
           {(['focus', 'short_break', 'long_break'] as Phase[]).map((p) => (
             <button key={p}
-              onClick={() => { if (!running) { setPhase(p); setSecondsLeft(p === 'focus' ? settings.focusMinutes * 60 : p === 'short_break' ? settings.shortBreakMinutes * 60 : settings.longBreakMinutes * 60); } }}
+              onClick={() => { if (!running) { timer.setPhase(p, p === 'focus' ? settings.focusMinutes * 60 : p === 'short_break' ? settings.shortBreakMinutes * 60 : settings.longBreakMinutes * 60); } }}
               className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${phase === p ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
               {phaseLabel[p]}
             </button>
