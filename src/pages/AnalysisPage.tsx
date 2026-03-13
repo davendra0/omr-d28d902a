@@ -374,10 +374,10 @@ function AnalysisContent({
           </div>
         </div>
 
-        {/* Score Progression vs Timeline with d(score)/dt */}
+        {/* Score Progression vs Timeline with smoothed speed */}
         <div className="bg-card border border-border rounded-lg p-4">
           <h3 className="font-mono text-sm text-muted-foreground font-bold mb-1">Score Progression vs Time</h3>
-          <p className="text-[10px] text-muted-foreground mb-2">Blue = cumulative score, Purple = solving speed (d(score)/dt)</p>
+          <p className="text-[10px] text-muted-foreground mb-2">Blue = cumulative score, Green = questions solved per minute</p>
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={scoreTimeline}>
@@ -385,11 +385,11 @@ function AnalysisContent({
                 <XAxis dataKey="time" tick={{ fontSize: 9 }} label={{ value: 'min', position: 'insideBottomRight', offset: -2, fontSize: 9 }} />
                 <YAxis yAxisId="score" tick={{ fontSize: 10 }} width={35} />
                 <YAxis yAxisId="speed" orientation="right" tick={{ fontSize: 9 }} width={30} />
-                <Tooltip formatter={(v: number, name: string) => [name === 'speed' ? `${v} pts/s` : v, name === 'speed' ? 'd(score)/dt' : 'Score']}
+                <Tooltip formatter={(v: number, name: string) => [name === 'speed' ? `${v} ques/min` : v, name === 'speed' ? 'Speed (ques/min)' : 'Score']}
                   labelFormatter={(l) => `${l} min`} />
                 <Legend />
                 <Area yAxisId="score" type="monotone" dataKey="score" stroke={COLORS.primary} fill={COLORS.primary} fillOpacity={0.1} strokeWidth={2} name="Score" />
-                <Line yAxisId="speed" type="monotone" dataKey="speed" stroke={COLORS.speed} strokeWidth={1.5} dot={false} name="Speed" />
+                <Line yAxisId="speed" type="natural" dataKey="speed" stroke={COLORS.speed} strokeWidth={2} dot={false} name="Speed (ques/min)" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
