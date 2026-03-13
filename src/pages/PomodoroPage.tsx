@@ -124,9 +124,9 @@ const PomodoroPage = () => {
     setSettings(newSettings);
     setShowSettings(false);
     if (!running) {
-      if (phase === 'focus') setSecondsLeft(newSettings.focusMinutes * 60);
-      else if (phase === 'short_break') setSecondsLeft(newSettings.shortBreakMinutes * 60);
-      else setSecondsLeft(newSettings.longBreakMinutes * 60);
+      if (phase === 'focus') timer.setSecondsLeft(newSettings.focusMinutes * 60);
+      else if (phase === 'short_break') timer.setSecondsLeft(newSettings.shortBreakMinutes * 60);
+      else timer.setSecondsLeft(newSettings.longBreakMinutes * 60);
     }
   };
 
