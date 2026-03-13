@@ -19,7 +19,7 @@ const COLORS = {
   unanswered: 'hsl(215, 16%, 47%)',
   primary: 'hsl(221, 83%, 53%)',
   warn: 'hsl(38, 92%, 50%)',
-  speed: 'hsl(280, 70%, 55%)',
+  speed: 'hsl(142, 71%, 45%)', // Green for d(score)/dt
 };
 
 const AnalysisPage = () => {
@@ -190,23 +190,41 @@ function AnalysisContent({
   const byAttempt = [...analysis].sort((a, b) => a.attemptIdx - b.attemptIdx);
   const answeredByAttempt = byAttempt.filter(a => a.answeredAt !== null);
 
-  // Score progression vs timeline (cumulative score over time in seconds from start)
+  // Score progression vs timeline - smoothed by 1-min buckets for speed
   const scoreTimeline = useMemo(() => {
+    if (answeredByAttempt.length === 0) return [];
+    
+    // First build raw data points
     let running = 0;
-    let prevScore = 0;
-    return answeredByAttempt.map((a, i) => {
+    const raw = answeredByAttempt.map((a) => {
       running += a.marks;
-      const elapsed = Math.round((a.answeredAt - result.startTime) / 1000);
-      const dt = i > 0 ? (a.answeredAt - answeredByAttempt[i - 1].answeredAt) / 1000 : (a.answeredAt - result.startTime) / 1000;
-      const dScore = a.marks;
-      const speed = dt > 0 ? Math.round((dScore / dt) * 100) / 100 : 0; // d(score)/dt
-      prevScore = running;
+      const elapsed = (a.answeredAt - result.startTime) / 1000;
       return {
-        time: Math.round(elapsed / 60 * 10) / 10, // minutes
-        timeLabel: fmt(elapsed),
+        time: Math.round(elapsed / 60 * 10) / 10,
         score: running,
-        speed,
-        q: `Q${a.questionNo}`,
+        answeredAt: a.answeredAt,
+        questionNo: a.questionNo,
+      };
+    });
+
+    // Bucket by 1-minute intervals for speed (ques/min)
+    const totalMins = Math.ceil((raw[raw.length - 1].time) || 1);
+    const buckets = new Map<number, number>(); // minute -> count of questions
+    answeredByAttempt.forEach(a => {
+      const min = Math.floor((a.answeredAt - result.startTime) / 60000);
+      buckets.set(min, (buckets.get(min) || 0) + 1);
+    });
+
+    // Build timeline with smoothed speed
+    return raw.map((point) => {
+      const minuteBucket = Math.floor(point.time);
+      const quesPerMin = buckets.get(minuteBucket) || 0;
+      return {
+        time: point.time,
+        timeLabel: `${point.time.toFixed(1)}m`,
+        score: point.score,
+        speed: quesPerMin, // questions per minute
+        q: `Q${point.questionNo}`,
       };
     });
   }, [answeredByAttempt, result.startTime]);
@@ -356,10 +374,10 @@ function AnalysisContent({
           </div>
         </div>
 
-        {/* Score Progression vs Timeline with d(score)/dt */}
+        {/* Score Progression vs Timeline with smoothed speed */}
         <div className="bg-card border border-border rounded-lg p-4">
           <h3 className="font-mono text-sm text-muted-foreground font-bold mb-1">Score Progression vs Time</h3>
-          <p className="text-[10px] text-muted-foreground mb-2">Blue = cumulative score, Purple = solving speed (d(score)/dt)</p>
+          <p className="text-[10px] text-muted-foreground mb-2">Blue = cumulative score, Green = questions solved per minute</p>
           <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
               <ComposedChart data={scoreTimeline}>
@@ -367,11 +385,11 @@ function AnalysisContent({
                 <XAxis dataKey="time" tick={{ fontSize: 9 }} label={{ value: 'min', position: 'insideBottomRight', offset: -2, fontSize: 9 }} />
                 <YAxis yAxisId="score" tick={{ fontSize: 10 }} width={35} />
                 <YAxis yAxisId="speed" orientation="right" tick={{ fontSize: 9 }} width={30} />
-                <Tooltip formatter={(v: number, name: string) => [name === 'speed' ? `${v} pts/s` : v, name === 'speed' ? 'd(score)/dt' : 'Score']}
+                <Tooltip formatter={(v: number, name: string) => [name === 'speed' ? `${v} ques/min` : v, name === 'speed' ? 'Speed (ques/min)' : 'Score']}
                   labelFormatter={(l) => `${l} min`} />
                 <Legend />
                 <Area yAxisId="score" type="monotone" dataKey="score" stroke={COLORS.primary} fill={COLORS.primary} fillOpacity={0.1} strokeWidth={2} name="Score" />
-                <Line yAxisId="speed" type="monotone" dataKey="speed" stroke={COLORS.speed} strokeWidth={1.5} dot={false} name="Speed" />
+                <Line yAxisId="speed" type="natural" dataKey="speed" stroke={COLORS.speed} strokeWidth={2} dot={false} name="Speed (ques/min)" />
               </ComposedChart>
             </ResponsiveContainer>
           </div>

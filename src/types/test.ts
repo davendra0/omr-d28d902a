@@ -47,6 +47,7 @@ export interface TestConfig {
   timeInMinutes: number;
   sections: TestSection[];
   displayPrefs: DisplayPrefs;
+  wallClockStartTime?: string; // HH:MM format e.g. "14:00"
 }
 
 export interface TestResult {

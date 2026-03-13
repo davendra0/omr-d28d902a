@@ -7,6 +7,8 @@ import type { Option, MarkType } from '@/types/test';
 import { MARK_ICONS } from '@/types/test';
 
 const optionsList: Option[] = ['A', 'B', 'C', 'D'];
+const AUTOSAVE_KEY = 'omr_autosave';
+const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 
 const TestPage = () => {
   const { config, responses, selectOption, toggleMark, endTest } = useTestStore();
@@ -24,7 +26,29 @@ const TestPage = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  const handleEnd = useCallback(() => { endTest(); navigate('/results'); }, [endTest, navigate]);
+  // Autosave
+  useEffect(() => {
+    if (!config) return;
+    const save = () => {
+      const state = useTestStore.getState();
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({
+        config: state.config,
+        responses: state.responses,
+        startTime: state.startTime,
+        savedAt: Date.now(),
+      }));
+    };
+    save(); // save immediately on start
+    const id = setInterval(save, AUTOSAVE_INTERVAL);
+    return () => clearInterval(id);
+  }, [config, responses]);
+
+  // Clear autosave on submit
+  const handleEnd = useCallback(() => {
+    localStorage.removeItem(AUTOSAVE_KEY);
+    endTest();
+    navigate('/results');
+  }, [endTest, navigate]);
 
   const sections = useMemo(() => {
     if (!config) return [];
@@ -68,7 +92,6 @@ const TestPage = () => {
 
   const scrollToQuestion = (qNo: number) => {
     rowRefs.current[qNo]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    // Switch to correct section
     const secIdx = sections.findIndex(s => qNo >= s.startQ && qNo <= s.endQ);
     if (secIdx >= 0) setActiveSection(secIdx);
   };
@@ -89,6 +112,7 @@ const TestPage = () => {
               onTimeUp={handleEnd}
               showCountdown={dp.showCountdown}
               showWallClock={dp.showWallClock}
+              wallClockStartTime={config.wallClockStartTime}
             />
           </div>
           <div className="flex items-center gap-3 text-sm font-mono flex-wrap">
@@ -137,10 +161,9 @@ const TestPage = () => {
         {/* Main OMR area */}
         <div className="flex-1 p-4 pt-2">
           <p className="text-xs text-muted-foreground italic mb-2">
-            💡 Right-click to eliminate. Left-click eliminated to restore.
+            💡 Right-click to eliminate. Left-click eliminated to restore. Auto-saving every 30s.
           </p>
 
-          {/* Section label */}
           {sections.length > 1 && (
             <div className="text-sm font-mono font-bold text-foreground mb-2">
               {currentSection.name} — Q{currentSection.startQ}–{currentSection.endQ}
@@ -257,7 +280,6 @@ const TestPage = () => {
                 </div>
               </div>
             ))}
-            {/* Legend */}
             <div className="mt-3 space-y-1 text-[9px] font-mono text-muted-foreground border-t border-border pt-2">
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-primary" /> Answered</div>
               <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-[hsl(var(--review))]/20 border border-[hsl(var(--review))]/50" /> Marked</div>
@@ -304,7 +326,7 @@ const TestPage = () => {
           <div className="bg-card border border-border rounded-lg p-6 max-w-sm w-full mx-4 space-y-4">
             <h2 className="text-lg font-bold text-destructive">⚠ Quit Test?</h2>
             <p className="text-sm text-muted-foreground">
-              Your progress will be <strong>lost</strong>. You have answered <strong>{stats.answered}/{stats.total}</strong> questions.
+              Your progress is auto-saved. You have answered <strong>{stats.answered}/{stats.total}</strong> questions.
             </p>
             <div className="flex gap-3 justify-end">
               <button onClick={() => setShowQuitWarning(false)} className="px-4 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted">Continue Test</button>
