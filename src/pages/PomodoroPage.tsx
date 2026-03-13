@@ -3,16 +3,18 @@ import {
   getSettings, saveSettings, addSession, deleteSession, updateSession, getTodaySessions, getSessions,
   type PomodoroSettings, type PomodoroSession, DEFAULT_SETTINGS, SUBJECTS,
 } from '@/lib/pomodoroStore';
+import { usePomodoroTimer } from '@/store/pomodoroTimerStore';
 
 type Phase = 'focus' | 'short_break' | 'long_break';
 
 const PomodoroPage = () => {
   const [settings, setSettings] = useState<PomodoroSettings>(getSettings);
   const [showSettings, setShowSettings] = useState(false);
-  const [phase, setPhase] = useState<Phase>('focus');
-  const [secondsLeft, setSecondsLeft] = useState(settings.focusMinutes * 60);
-  const [running, setRunning] = useState(false);
-  const [sessionCount, setSessionCount] = useState(0);
+  const timer = usePomodoroTimer();
+  const phase = timer.phase as Phase;
+  const secondsLeft = timer.secondsLeft;
+  const running = timer.running;
+  const sessionCount = timer.sessionCount;
   const [todaySessions, setTodaySessions] = useState<PomodoroSession[]>(getTodaySessions);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
