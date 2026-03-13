@@ -103,13 +103,13 @@ const PomodoroPage = () => {
       return;
     }
     intervalRef.current = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) { completePhase(); return 0; }
-        return s - 1;
-      });
+      timer.setSecondsLeft(usePomodoroTimer.getState().secondsLeft - 1);
+      if (usePomodoroTimer.getState().secondsLeft <= 1) {
+        completePhase();
+      }
     }, 1000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [running, completePhase]);
+  }, [running, completePhase, timer]);
 
   const resetTimer = () => {
     setRunning(false);
