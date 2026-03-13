@@ -231,7 +231,7 @@ const PomodoroPage = () => {
 
         {/* Controls */}
         <div className="flex gap-2">
-          <button onClick={() => setRunning(!running)}
+          <button onClick={() => timer.setRunning(!running)}
             className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
             {running ? '⏸ Pause' : '▶ Start'}
           </button>
