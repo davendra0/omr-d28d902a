@@ -86,11 +86,12 @@ const SetupPage = () => {
     if (!autosave) return;
     const store = useTestStore.getState();
     store.setConfig(autosave.config);
-    // Restore responses
+    // Restore responses and startTime
     useTestStore.setState({
       responses: autosave.responses,
-      startTime: autosave.startTime,
+      startTime: autosave.startTime || Date.now(),
     });
+    // Don't call startTest() since startTime is already set
     navigate('/test');
   };
 
