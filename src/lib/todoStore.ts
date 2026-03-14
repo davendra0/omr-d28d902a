@@ -6,14 +6,26 @@ export interface Todo {
   dueDate?: string; // YYYY-MM-DD
   dueTime?: string; // HH:mm
   tags: string[];
-  color: string; // one of COLORS keys
+  color: string;
   priority: 'low' | 'medium' | 'high';
   createdAt: number;
   completedAt?: number;
+  estimatedMinutes?: number;
+  pomodoroSessionIds?: string[]; // linked pomo sessions
+  subtasks?: Subtask[];
+  recurring?: 'daily' | 'weekly' | 'monthly' | null;
+  category?: string;
+}
+
+export interface Subtask {
+  id: string;
+  title: string;
+  completed: boolean;
 }
 
 const STORE_KEY = 'workspace_todos';
 const TAGS_KEY = 'workspace_todo_tags';
+const CATEGORIES_KEY = 'workspace_todo_categories';
 
 export const COLORS: Record<string, string> = {
   none: 'transparent',
@@ -73,4 +85,18 @@ export function getSavedTags(): string[] {
 
 export function saveTags(tags: string[]) {
   localStorage.setItem(TAGS_KEY, JSON.stringify([...new Set(tags)]));
+}
+
+export function getSavedCategories(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem(CATEGORIES_KEY) || '["Study","Personal","Exam Prep","Revision"]');
+  } catch { return ['Study', 'Personal', 'Exam Prep', 'Revision']; }
+}
+
+export function saveCategories(cats: string[]) {
+  localStorage.setItem(CATEGORIES_KEY, JSON.stringify([...new Set(cats)]));
+}
+
+export function getTodosForDate(date: string): Todo[] {
+  return getTodos().filter(t => t.dueDate === date);
 }

@@ -8,7 +8,6 @@ import { MARK_ICONS } from '@/types/test';
 
 const optionsList: Option[] = ['A', 'B', 'C', 'D'];
 const AUTOSAVE_KEY = 'omr_autosave';
-const AUTOSAVE_INTERVAL = 30000; // 30 seconds
 
 const TestPage = () => {
   const { config, responses, selectOption, toggleMark, endTest } = useTestStore();
@@ -26,7 +25,7 @@ const TestPage = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, []);
 
-  // Autosave
+  // Autosave — save on every response change + periodic
   useEffect(() => {
     if (!config) return;
     const save = () => {
@@ -38,12 +37,28 @@ const TestPage = () => {
         savedAt: Date.now(),
       }));
     };
-    save(); // save immediately on start
-    const id = setInterval(save, AUTOSAVE_INTERVAL);
+    save(); // immediate save
+    const id = setInterval(save, 5000); // every 5 seconds
     return () => clearInterval(id);
-  }, [config, responses]);
+  }, [config, responses]); // re-runs on every response change
 
-  // Clear autosave on submit
+  // Also save on visibility change (tab switch, minimize)
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden && config) {
+        const state = useTestStore.getState();
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({
+          config: state.config,
+          responses: state.responses,
+          startTime: state.startTime,
+          savedAt: Date.now(),
+        }));
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [config]);
+
   const handleEnd = useCallback(() => {
     localStorage.removeItem(AUTOSAVE_KEY);
     endTest();
@@ -138,7 +153,6 @@ const TestPage = () => {
           </div>
         </div>
 
-        {/* Section tabs */}
         {sections.length > 1 && (
           <div className="max-w-5xl mx-auto flex gap-1 mt-2 overflow-x-auto">
             {sections.map((sec, i) => {
@@ -158,10 +172,9 @@ const TestPage = () => {
       </div>
 
       <div className="flex flex-1 max-w-5xl mx-auto w-full">
-        {/* Main OMR area */}
         <div className="flex-1 p-4 pt-2">
           <p className="text-xs text-muted-foreground italic mb-2">
-            💡 Right-click to eliminate. Left-click eliminated to restore. Auto-saving every 30s.
+            💡 Right-click to eliminate. Auto-saving continuously.
           </p>
 
           {sections.length > 1 && (
@@ -218,7 +231,6 @@ const TestPage = () => {
                       );
                     })}
                   </div>
-                  {/* Mark buttons */}
                   <div className="flex items-center gap-0.5 ml-auto">
                     {(Object.entries(MARK_ICONS) as [MarkType, typeof MARK_ICONS[MarkType]][]).map(([type, meta]) => {
                       const active = r.marks.includes(type);
@@ -243,7 +255,6 @@ const TestPage = () => {
           </div>
         </div>
 
-        {/* Question Panel (sidebar) */}
         {showPanel && (
           <div className="w-56 shrink-0 border-l border-border bg-card p-3 overflow-y-auto sticky top-[4.5rem] h-[calc(100vh-4.5rem)]">
             <div className="text-xs font-mono font-bold text-muted-foreground mb-2">QUESTION PANEL</div>
