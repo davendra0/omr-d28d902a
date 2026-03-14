@@ -5,6 +5,7 @@ import { getCountdowns, type Countdown } from '@/lib/countdownStore';
 import { getTodaySessions } from '@/lib/pomodoroStore';
 import { getTodos } from '@/lib/todoStore';
 import { getAllMistakes } from '@/lib/mistakeStore';
+import { useTestStore } from '@/store/testStore';
 
 const HomePage = () => {
   const navigate = useNavigate();
