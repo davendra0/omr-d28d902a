@@ -5,6 +5,7 @@ import { getCountdowns, type Countdown } from '@/lib/countdownStore';
 import { getTodaySessions } from '@/lib/pomodoroStore';
 import { getTodos } from '@/lib/todoStore';
 import { getAllMistakes } from '@/lib/mistakeStore';
+import { useTestStore } from '@/store/testStore';
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const HomePage = () => {
   const [todayFocus, setTodayFocus] = useState(0);
   const [tasksDone, setTasksDone] = useState({ done: 0, total: 0 });
   const [mistakeCount, setMistakeCount] = useState(0);
+  const [hasAutosave, setHasAutosave] = useState(false);
 
   useEffect(() => {
     setTestCount(getSavedTests().length);
@@ -26,6 +28,7 @@ const HomePage = () => {
     const todos = getTodos();
     setTasksDone({ done: todos.filter(t => t.completed).length, total: todos.length });
     setMistakeCount(getAllMistakes().length);
+    try { if (localStorage.getItem('omr_autosave')) setHasAutosave(true); } catch {}
   }, []);
 
   const daysUntil = (date: string) => {
@@ -74,6 +77,29 @@ const HomePage = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto space-y-8">
+      {/* Autosave recovery */}
+      {hasAutosave && (
+        <div className="bg-[hsl(var(--review))]/10 border border-[hsl(var(--review))]/30 rounded-xl p-4 flex items-center justify-between">
+          <div>
+            <div className="text-sm font-bold text-foreground">⚠️ Unsaved test found</div>
+            <div className="text-xs text-muted-foreground">You have an auto-saved test in progress. Resume or discard it.</div>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => {
+              try {
+                const raw = JSON.parse(localStorage.getItem('omr_autosave') || '');
+                const store = useTestStore.getState();
+                store.setConfig(raw.config);
+                useTestStore.setState({ responses: raw.responses, startTime: raw.startTime || Date.now() });
+                navigate('/test');
+              } catch {}
+            }} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold">Resume</button>
+            <button onClick={() => { localStorage.removeItem('omr_autosave'); setHasAutosave(false); }}
+              className="px-3 py-1.5 border border-border rounded-lg text-xs text-muted-foreground hover:bg-muted">Discard</button>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-2">
         <h1 className="text-3xl font-bold font-mono text-foreground tracking-tight">
           Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'} 👋

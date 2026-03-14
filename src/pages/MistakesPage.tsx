@@ -1,15 +1,19 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllMistakes, MISTAKE_TYPES, type MistakeType, type QuestionAnnotation, deleteAnnotation } from '@/lib/mistakeStore';
+import { getSavedTests } from '@/lib/testHistory';
+import { useTestStore } from '@/store/testStore';
 
 const MistakesPage = () => {
   const navigate = useNavigate();
+  const { setResult, setAnswerKey } = useTestStore();
   const [annotations, setAnnotations] = useState<QuestionAnnotation[]>(getAllMistakes);
   const [filterType, setFilterType] = useState<MistakeType | ''>('');
   const [filterTest, setFilterTest] = useState('');
   const [filterTag, setFilterTag] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   const testNames = useMemo(() => [...new Set(annotations.map(a => a.testName))], [annotations]);
   const allTags = useMemo(() => [...new Set(annotations.flatMap(a => a.tags || []))].sort(), [annotations]);
@@ -34,6 +38,16 @@ const MistakesPage = () => {
   const handleDelete = (testId: string, questionNo: number) => {
     deleteAnnotation(testId, questionNo);
     setAnnotations(getAllMistakes());
+  };
+
+  const handleGoToTest = (ann: QuestionAnnotation) => {
+    const savedTests = getSavedTests();
+    const test = savedTests.find(t => t.id === ann.testId);
+    if (test) {
+      setResult(test.result);
+      if (test.answerKey) setAnswerKey(test.answerKey);
+      navigate('/analysis');
+    }
   };
 
   return (
@@ -100,7 +114,7 @@ const MistakesPage = () => {
                     <span className="font-mono font-bold text-foreground">Q.{ann.questionNo}</span>
                     <span className="text-destructive font-mono text-xs">{ann.selected}</span>
                     <span className="text-muted-foreground text-xs">→</span>
-                    <span className="text-[hsl(var(--success))] font-mono text-xs">{ann.correct}</span>
+                    <span className="text-[hsl(142,71%,40%)] font-mono text-xs">{ann.correct}</span>
                     {ann.imageData && <span className="text-xs">🖼</span>}
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-0.5 flex gap-2 flex-wrap">
@@ -124,12 +138,18 @@ const MistakesPage = () => {
                     </pre>
                   )}
                   {ann.imageData && (
-                    <img src={ann.imageData} alt={`Q.${ann.questionNo}`} className="max-w-full max-h-64 rounded-lg border border-border" />
+                    <img src={ann.imageData} alt={`Q.${ann.questionNo}`}
+                      className="max-w-full max-h-64 rounded-lg border border-border cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => setLightboxImg(ann.imageData!)} />
                   )}
                   <div className="flex gap-2 items-center">
                     <span className="text-[10px] text-muted-foreground font-mono">
                       {new Date(ann.createdAt).toLocaleDateString()}
                     </span>
+                    <button onClick={() => handleGoToTest(ann)}
+                      className="text-[10px] text-primary hover:underline font-mono">
+                      📊 View Test Analysis
+                    </button>
                     <button onClick={() => handleDelete(ann.testId, ann.questionNo)}
                       className="text-[10px] text-muted-foreground hover:text-destructive ml-auto">
                       🗑 Delete
@@ -141,6 +161,14 @@ const MistakesPage = () => {
           );
         })}
       </div>
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground/80 p-4"
+          onClick={() => setLightboxImg(null)}>
+          <img src={lightboxImg} alt="Mistake" className="max-w-full max-h-full rounded-lg shadow-2xl" />
+        </div>
+      )}
     </div>
   );
 };
