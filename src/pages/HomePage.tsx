@@ -14,6 +14,7 @@ const HomePage = () => {
   const [todayFocus, setTodayFocus] = useState(0);
   const [tasksDone, setTasksDone] = useState({ done: 0, total: 0 });
   const [mistakeCount, setMistakeCount] = useState(0);
+  const [hasAutosave, setHasAutosave] = useState(false);
 
   useEffect(() => {
     setTestCount(getSavedTests().length);
