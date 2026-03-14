@@ -28,6 +28,7 @@ const HomePage = () => {
     const todos = getTodos();
     setTasksDone({ done: todos.filter(t => t.completed).length, total: todos.length });
     setMistakeCount(getAllMistakes().length);
+    try { if (localStorage.getItem('omr_autosave')) setHasAutosave(true); } catch {}
   }, []);
 
   const daysUntil = (date: string) => {
