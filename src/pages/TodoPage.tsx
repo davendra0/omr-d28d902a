@@ -6,6 +6,9 @@ import {
   type Todo, type Subtask, COLOR_CLASSES,
 } from '@/lib/todoStore';
 import { usePomodoroTimer } from '@/store/pomodoroTimerStore';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+} from '@/components/ui/dialog';
 
 const PRIORITIES = ['low', 'medium', 'high'] as const;
 const PRIORITY_ICONS: Record<string, string> = { low: '🟢', medium: '🟡', high: '🔴' };
@@ -120,14 +123,38 @@ const TodoPage = () => {
             className="px-2.5 py-1.5 border border-border rounded-lg text-xs text-foreground hover:bg-muted transition-colors">
             {viewMode === 'list' ? '📅' : '📋'}
           </button>
-          <button onClick={() => setShowAdd(!showAdd)}
+          <button onClick={() => setShowAdd(true)}
             className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg font-bold text-sm hover:opacity-90 transition-opacity">
             + Task
           </button>
         </div>
       </div>
 
-      {showAdd && <AddTodoForm onAdd={handleAdd} onCancel={() => setShowAdd(false)} savedTags={allTags} categories={allCategories} />}
+      {/* Add Task Dialog */}
+      <Dialog open={showAdd} onOpenChange={setShowAdd}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-mono">New Task</DialogTitle>
+            <DialogDescription>Add a new task with details, subtasks and tags.</DialogDescription>
+          </DialogHeader>
+          <AddTodoForm onAdd={handleAdd} onCancel={() => setShowAdd(false)} savedTags={allTags} categories={allCategories} />
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Task Dialog */}
+      <Dialog open={editingId !== null} onOpenChange={(open) => { if (!open) setEditingId(null); }}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-mono">Edit Task</DialogTitle>
+            <DialogDescription>Update task details.</DialogDescription>
+          </DialogHeader>
+          {editingId && (() => {
+            const todo = todos.find(t => t.id === editingId);
+            if (!todo) return null;
+            return <EditTodoForm todo={todo} onSave={(u) => handleUpdate(todo.id, u)} onCancel={() => setEditingId(null)} savedTags={allTags} categories={allCategories} />;
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Filters */}
       <div className="flex gap-1 flex-wrap items-center">
@@ -164,17 +191,13 @@ const TodoPage = () => {
             </div>
           )}
           {filtered.map(todo => (
-            editingId === todo.id ? (
-              <EditTodoForm key={todo.id} todo={todo} onSave={(u) => handleUpdate(todo.id, u)} onCancel={() => setEditingId(null)} savedTags={allTags} categories={allCategories} />
-            ) : (
-              <TodoItem key={todo.id} todo={todo} today={today}
-                onToggle={() => handleToggle(todo.id)}
-                onDelete={() => handleDelete(todo.id)}
-                onEdit={() => setEditingId(todo.id)}
-                onStartPomo={() => handleStartPomo(todo)}
-                onToggleSubtask={(sid) => handleToggleSubtask(todo.id, sid)}
-              />
-            )
+            <TodoItem key={todo.id} todo={todo} today={today}
+              onToggle={() => handleToggle(todo.id)}
+              onDelete={() => handleDelete(todo.id)}
+              onEdit={() => setEditingId(todo.id)}
+              onStartPomo={() => handleStartPomo(todo)}
+              onToggleSubtask={(sid) => handleToggleSubtask(todo.id, sid)}
+            />
           ))}
         </div>
       )}
@@ -315,7 +338,7 @@ function TodoItem({ todo, today, onToggle, onDelete, onEdit, onStartPomo, onTogg
   );
 }
 
-/* ──── Add Form ──── */
+/* ──── Add Form (inside dialog) ──── */
 function AddTodoForm({ onAdd, onCancel, savedTags, categories }: {
   onAdd: (t: Todo) => void; onCancel: () => void; savedTags: string[]; categories: string[];
 }) {
@@ -351,7 +374,7 @@ function AddTodoForm({ onAdd, onCancel, savedTags, categories }: {
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+    <div className="space-y-3">
       <input type="text" placeholder="Task title..." value={title} onChange={(e) => setTitle(e.target.value)} autoFocus
         className="w-full h-10 px-3 border border-border rounded-lg bg-background text-foreground text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary" />
       <textarea placeholder="Description (optional)" value={description} onChange={(e) => setDescription(e.target.value)}
@@ -447,15 +470,15 @@ function AddTodoForm({ onAdd, onCancel, savedTags, categories }: {
         </div>
       </div>
 
-      <div className="flex gap-2">
-        <button onClick={submit} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm">Add Task</button>
+      <div className="flex gap-2 pt-2">
+        <button onClick={submit} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm flex-1">Add Task</button>
         <button onClick={onCancel} className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted">Cancel</button>
       </div>
     </div>
   );
 }
 
-/* ──── Edit Form ──── */
+/* ──── Edit Form (inside dialog) ──── */
 function EditTodoForm({ todo, onSave, onCancel, savedTags, categories }: {
   todo: Todo; onSave: (u: Partial<Todo>) => void; onCancel: () => void; savedTags: string[]; categories: string[];
 }) {
@@ -479,7 +502,7 @@ function EditTodoForm({ todo, onSave, onCancel, savedTags, categories }: {
   };
 
   return (
-    <div className="bg-card border-2 border-primary/30 rounded-xl p-4 space-y-3">
+    <div className="space-y-3">
       <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} autoFocus
         className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary" />
       <textarea value={description} onChange={(e) => setDescription(e.target.value)}
@@ -531,7 +554,6 @@ function EditTodoForm({ todo, onSave, onCancel, savedTags, categories }: {
           ))}
         </div>
       </div>
-      {/* Subtasks */}
       <div>
         <label className="text-[10px] text-muted-foreground">Subtasks</label>
         {subtasks.map(s => (
@@ -547,7 +569,6 @@ function EditTodoForm({ todo, onSave, onCancel, savedTags, categories }: {
             className="flex-1 h-7 px-2 border border-border rounded-lg bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
       </div>
-      {/* Tags */}
       <div>
         <label className="text-[10px] text-muted-foreground">Tags</label>
         <div className="flex gap-1 flex-wrap mt-0.5">
@@ -564,12 +585,12 @@ function EditTodoForm({ todo, onSave, onCancel, savedTags, categories }: {
             className="flex-1 h-7 px-2 border border-border rounded-lg bg-background text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary" />
         </div>
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-2">
         <button onClick={() => onSave({
           title, description, dueDate: dueDate || undefined, dueTime: dueTime || undefined,
           tags, color, priority, estimatedMinutes: estimatedMinutes ? +estimatedMinutes : undefined,
           category: category || undefined, subtasks: subtasks.length > 0 ? subtasks : undefined,
-        })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm">Save</button>
+        })} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm flex-1">Save</button>
         <button onClick={onCancel} className="px-4 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted">Cancel</button>
       </div>
     </div>
