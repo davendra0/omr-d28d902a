@@ -8,6 +8,29 @@ import { getTodos, type Todo } from '@/lib/todoStore';
 
 type Phase = 'focus' | 'short_break' | 'long_break';
 
+const PHASE_META: Record<Phase, { label: string; icon: string; gradient: string; ring: string; text: string; stroke: string }> = {
+  focus: {
+    label: 'Focus', icon: '🎯',
+    gradient: 'from-primary/10 to-primary/5',
+    ring: 'ring-primary/20', text: 'text-primary',
+    stroke: 'stroke-primary',
+  },
+  short_break: {
+    label: 'Break', icon: '☕',
+    gradient: 'from-[hsl(142,71%,40%)]/10 to-[hsl(142,71%,40%)]/5',
+    ring: 'ring-[hsl(142,71%,40%)]/20', text: 'text-[hsl(142,71%,40%)]',
+    stroke: 'stroke-[hsl(142,71%,40%)]',
+  },
+  long_break: {
+    label: 'Long Break', icon: '🌿',
+    gradient: 'from-accent/10 to-accent/5',
+    ring: 'ring-accent/20', text: 'text-accent',
+    stroke: 'stroke-accent',
+  },
+};
+
+const PRIORITY_ICONS_MINI: Record<string, string> = { low: '🟢', medium: '🟡', high: '🔴' };
+
 const PomodoroPage = () => {
   const [settings, setSettings] = useState<PomodoroSettings>(getSettings);
   const [showSettings, setShowSettings] = useState(false);
@@ -33,6 +56,7 @@ const PomodoroPage = () => {
     try { return parseInt(localStorage.getItem('pomo_daily_goal') || '120'); } catch { return 120; }
   });
   const [linkedTasks, setLinkedTasks] = useState<Todo[]>([]);
+  const [showTaskPicker, setShowTaskPicker] = useState(false);
 
   useEffect(() => {
     setLinkedTasks(getTodos().filter(t => !t.completed).slice(0, 10));
@@ -44,17 +68,7 @@ const PomodoroPage = () => {
       ? settings.shortBreakMinutes * 60
       : settings.longBreakMinutes * 60;
 
-  const phaseLabel: Record<Phase, string> = { focus: 'Focus', short_break: 'Break', long_break: 'Long Break' };
-  const progressColor: Record<Phase, string> = {
-    focus: 'stroke-primary',
-    short_break: 'stroke-[hsl(142,71%,40%)]',
-    long_break: 'stroke-accent',
-  };
-  const phaseColor: Record<Phase, string> = {
-    focus: 'text-primary',
-    short_break: 'text-[hsl(142,71%,40%)]',
-    long_break: 'text-accent',
-  };
+  const meta = PHASE_META[phase];
 
   const completePhase = useCallback(() => {
     timer.setRunning(false);
@@ -123,8 +137,8 @@ const PomodoroPage = () => {
   const todayMinutes = todayFocus.reduce((a, s) => a + s.durationMinutes, 0);
   const goalPct = Math.min(100, Math.round((todayMinutes / dailyGoal) * 100));
 
-  const size = minimal ? 280 : 220;
-  const strokeWidth = minimal ? 10 : 8;
+  const size = minimal ? 280 : 240;
+  const strokeWidth = 6;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -133,7 +147,7 @@ const PomodoroPage = () => {
   const dragging = useRef(false);
 
   const handleCirclePointerDown = (e: React.PointerEvent) => {
-    if (running) return; // only allow drag when paused
+    if (running) return;
     dragging.current = true;
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
   };
@@ -145,15 +159,13 @@ const PomodoroPage = () => {
     const cy = rect.top + rect.height / 2;
     const dx = e.clientX - cx;
     const dy = e.clientY - cy;
-    let angle = Math.atan2(dy, dx) + Math.PI / 2; // 0 at top
+    let angle = Math.atan2(dy, dx) + Math.PI / 2;
     if (angle < 0) angle += 2 * Math.PI;
     const fraction = angle / (2 * Math.PI);
     const newSecondsLeft = Math.round((1 - fraction) * totalSeconds);
     const clamped = Math.max(0, Math.min(totalSeconds * 2, newSecondsLeft));
-    // If dragging past 0, extend the total
     if (fraction < 0.1 && secondsLeft < totalSeconds * 0.1) {
-      // Near the end, allow extension
-      const newTotal = totalSeconds + 5 * 60; // extend by 5 min
+      const newTotal = totalSeconds + 5 * 60;
       timer.setPhase(phase, newTotal);
       timer.setSecondsLeft(newTotal - Math.round(fraction * newTotal));
     } else {
@@ -181,7 +193,11 @@ const PomodoroPage = () => {
   const handlePickTask = (task: Todo) => {
     setSessionLabel(task.title);
     if (task.category) setSessionSubject(task.category);
+    setShowTaskPicker(false);
   };
+
+  // Session dots for visual progress
+  const sessionDots = Array.from({ length: settings.sessionsBeforeLong }, (_, i) => i < (sessionCount % settings.sessionsBeforeLong));
 
   // Zen mode
   if (minimal) {
@@ -189,43 +205,38 @@ const PomodoroPage = () => {
       <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center gap-6">
         <button onClick={() => setMinimal(false)}
           className="absolute top-4 right-4 px-3 py-1.5 text-xs border border-border rounded-lg text-muted-foreground hover:bg-muted transition-colors">
-          ✕ Exit Zen
+          ✕ Exit
         </button>
-        <div className={`text-sm font-mono ${phaseColor[phase]}`}>{phaseLabel[phase]}</div>
+        <div className={`text-xs font-mono uppercase tracking-widest ${meta.text}`}>{meta.icon} {meta.label}</div>
         {sessionLabel && <div className="text-xs text-muted-foreground font-mono">📎 {sessionLabel}</div>}
         <div className="relative">
           <svg ref={svgRef} width={size} height={size} className="-rotate-90"
             onPointerMove={handleCirclePointerMove} onPointerUp={handleCirclePointerUp}>
-            <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="hsl(var(--border))" strokeWidth={strokeWidth} />
-            <circle cx={size/2} cy={size/2} r={radius} fill="none" className={progressColor[phase]}
+            <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="hsl(var(--border))" strokeWidth={strokeWidth} opacity={0.15} />
+            <circle cx={size/2} cy={size/2} r={radius} fill="none" className={meta.stroke}
               strokeWidth={strokeWidth} strokeLinecap="round"
               strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)}
-              style={{ transition: dragging.current ? 'none' : 'stroke-dashoffset 0.5s ease', cursor: !running ? 'grab' : 'default' }}
+              style={{ transition: dragging.current ? 'none' : 'stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)', cursor: !running ? 'grab' : 'default' }}
               onPointerDown={handleCirclePointerDown}
             />
           </svg>
           {!hideTime && (
             <div className="absolute inset-0 flex items-center justify-center" onDoubleClick={handleDoubleClickTime}>
               {editingTime ? (
-                <div className="flex items-center gap-1">
-                  <input type="number" value={editMinutes} onChange={(e) => setEditMinutes(e.target.value)} autoFocus
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEditTime(); if (e.key === 'Escape') setEditingTime(false); }}
-                    className="w-16 h-10 text-center text-2xl font-mono font-black bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
-                  <span className="text-sm text-muted-foreground">min</span>
-                </div>
+                <TimeEditInput value={editMinutes} onChange={setEditMinutes} onSave={handleSaveEditTime} onCancel={() => setEditingTime(false)} />
               ) : (
-                <div className={`text-6xl font-mono font-black ${phaseColor[phase]} cursor-pointer select-none`}>{pad(mins)}:{pad(secs)}</div>
+                <div className={`text-6xl font-mono font-black ${meta.text} cursor-pointer select-none tabular-nums`}>{pad(mins)}:{pad(secs)}</div>
               )}
             </div>
           )}
         </div>
         <div className="flex gap-3">
-          <button onClick={() => timer.setRunning(!running)} className="px-8 py-3 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90">
+          <button onClick={() => timer.setRunning(!running)} className="px-8 py-3 bg-primary text-primary-foreground rounded-2xl font-bold text-sm hover:opacity-90 transition-opacity shadow-lg">
             {running ? '⏸ Pause' : '▶ Start'}
           </button>
-          <button onClick={skipPhase} className="px-4 py-3 border border-border rounded-xl text-sm text-foreground hover:bg-muted">⏭ Skip</button>
+          <button onClick={skipPhase} className="px-4 py-3 border border-border rounded-2xl text-sm text-foreground hover:bg-muted">⏭</button>
         </div>
-        <button onClick={() => setHideTime(!hideTime)} className="text-xs text-muted-foreground hover:text-foreground">
+        <button onClick={() => setHideTime(!hideTime)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
           {hideTime ? '👁 Show Time' : '🙈 Hide Time'}
         </button>
       </div>
@@ -233,13 +244,13 @@ const PomodoroPage = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-xl mx-auto space-y-4">
+    <div className="p-4 sm:p-6 max-w-md mx-auto space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold font-mono text-foreground">🍅 Pomodoro</h1>
-        <div className="flex gap-1.5">
-          <button onClick={() => setMinimal(true)} className="px-2.5 py-1.5 border border-border rounded-lg text-xs text-foreground hover:bg-muted transition-colors" title="Zen mode">🧘</button>
-          <button onClick={() => setShowSettings(!showSettings)} className="px-2.5 py-1.5 border border-border rounded-lg text-xs text-foreground hover:bg-muted transition-colors" title="Settings">⚙️</button>
+        <h1 className="text-xl font-bold font-mono text-foreground">🍅 Pomodoro</h1>
+        <div className="flex gap-1">
+          <button onClick={() => setMinimal(true)} className="p-2 rounded-xl border border-border text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Zen mode">🧘</button>
+          <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-xl border border-border text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Settings">⚙️</button>
         </div>
       </div>
 
@@ -249,87 +260,91 @@ const PomodoroPage = () => {
       )}
 
       {/* Timer Card */}
-      <div className="bg-card border border-border rounded-2xl p-5 flex flex-col items-center gap-3">
-        {/* Phase selector */}
-        <div className="flex gap-1 bg-muted rounded-lg p-0.5">
+      <div className={`bg-gradient-to-b ${meta.gradient} border border-border rounded-2xl p-6 flex flex-col items-center gap-4 ring-1 ${meta.ring}`}>
+        {/* Phase pills */}
+        <div className="flex gap-0.5 bg-muted/50 rounded-xl p-0.5">
           {(['focus', 'short_break', 'long_break'] as Phase[]).map((p) => (
             <button key={p}
-              onClick={() => { if (!running) { timer.setPhase(p, p === 'focus' ? settings.focusMinutes * 60 : p === 'short_break' ? settings.shortBreakMinutes * 60 : settings.longBreakMinutes * 60); } }}
-              className={`px-3 py-1.5 rounded-md text-xs font-bold transition-colors ${phase === p ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
-              {phaseLabel[p]}
+              onClick={() => { if (!running) timer.setPhase(p, p === 'focus' ? settings.focusMinutes * 60 : p === 'short_break' ? settings.shortBreakMinutes * 60 : settings.longBreakMinutes * 60); }}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all ${phase === p ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+              {PHASE_META[p].icon} {PHASE_META[p].label}
             </button>
           ))}
         </div>
 
-        {/* Circle timer with drag */}
+        {/* Circle timer */}
         <div className="relative">
-          <svg ref={!minimal ? svgRef : undefined} width={size} height={size} className="-rotate-90"
+          <svg ref={svgRef} width={size} height={size} className="-rotate-90"
             onPointerMove={handleCirclePointerMove} onPointerUp={handleCirclePointerUp}>
-            <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="hsl(var(--border))" strokeWidth={strokeWidth} opacity={0.3} />
-            <circle cx={size/2} cy={size/2} r={radius} fill="none" className={progressColor[phase]}
+            <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="hsl(var(--border))" strokeWidth={strokeWidth} opacity={0.12} />
+            <circle cx={size/2} cy={size/2} r={radius} fill="none" className={meta.stroke}
               strokeWidth={strokeWidth} strokeLinecap="round"
               strokeDasharray={circumference} strokeDashoffset={circumference * (1 - progress)}
-              style={{ transition: dragging.current ? 'none' : 'stroke-dashoffset 0.5s ease', cursor: !running ? 'grab' : 'default' }}
+              style={{ transition: dragging.current ? 'none' : 'stroke-dashoffset 0.8s cubic-bezier(.4,0,.2,1)', cursor: !running ? 'grab' : 'default' }}
               onPointerDown={handleCirclePointerDown}
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center" onDoubleClick={handleDoubleClickTime}>
             {editingTime ? (
-              <div className="flex items-center gap-1">
-                <input type="number" value={editMinutes} onChange={(e) => setEditMinutes(e.target.value)} autoFocus
-                  onKeyDown={(e) => { if (e.key === 'Enter') handleSaveEditTime(); if (e.key === 'Escape') setEditingTime(false); }}
-                  onBlur={handleSaveEditTime}
-                  className="w-14 h-9 text-center text-xl font-mono font-black bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
-                <span className="text-xs text-muted-foreground">m</span>
-              </div>
+              <TimeEditInput value={editMinutes} onChange={setEditMinutes} onSave={handleSaveEditTime} onCancel={() => setEditingTime(false)} />
             ) : !hideTime ? (
-              <div className={`text-5xl font-mono font-black tracking-tighter ${phaseColor[phase]} cursor-pointer select-none`} title="Double-click to edit">{pad(mins)}:{pad(secs)}</div>
+              <div className={`text-5xl font-mono font-black tracking-tight ${meta.text} cursor-pointer select-none tabular-nums`} title="Double-click to edit">{pad(mins)}:{pad(secs)}</div>
             ) : (
-              <div className="text-sm text-muted-foreground font-mono">⏳ in progress</div>
+              <div className={`text-lg font-mono ${meta.text}`}>⏳</div>
             )}
-            <div className="text-[10px] text-muted-foreground mt-1 font-mono">#{sessionCount + 1}</div>
+            {/* Session dots */}
+            <div className="flex gap-1.5 mt-2">
+              {sessionDots.map((done, i) => (
+                <div key={i} className={`w-2 h-2 rounded-full transition-colors ${done ? 'bg-primary' : 'bg-border'}`} />
+              ))}
+            </div>
           </div>
         </div>
-        {!running && <p className="text-[10px] text-muted-foreground">Drag the circle to adjust · Double-click time to edit</p>}
+
+        {!running && <p className="text-[10px] text-muted-foreground -mt-2">Drag circle to adjust · Double-click to edit</p>}
 
         {/* Controls */}
         <div className="flex gap-2">
           <button onClick={() => timer.setRunning(!running)}
-            className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:opacity-90 transition-opacity">
+            className={`px-8 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all hover:shadow-lg ${running ? 'bg-muted text-foreground hover:bg-muted/80' : 'bg-primary text-primary-foreground hover:opacity-90'}`}>
             {running ? '⏸ Pause' : '▶ Start'}
           </button>
-          <button onClick={skipPhase} className="px-3 py-2.5 border border-border rounded-xl text-xs text-foreground hover:bg-muted" title="Skip">⏭</button>
-          <button onClick={resetTimer} className="px-3 py-2.5 border border-border rounded-xl text-xs text-foreground hover:bg-muted" title="Reset">↺</button>
-          <button onClick={() => setHideTime(!hideTime)} className="px-3 py-2.5 border border-border rounded-xl text-[10px] text-muted-foreground hover:bg-muted">
+          <button onClick={skipPhase} className="p-2.5 border border-border rounded-xl text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Skip">⏭</button>
+          <button onClick={resetTimer} className="p-2.5 border border-border rounded-xl text-sm text-muted-foreground hover:bg-muted hover:text-foreground transition-colors" title="Reset">↺</button>
+          <button onClick={() => setHideTime(!hideTime)} className="p-2.5 border border-border rounded-xl text-[11px] text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
             {hideTime ? '👁' : '🙈'}
           </button>
         </div>
       </div>
 
-      {/* Session tag + task picker */}
+      {/* Session label */}
       <div className="bg-card border border-border rounded-xl p-3 space-y-2">
-        <input type="text" placeholder="Label this session" value={sessionLabel} onChange={(e) => setSessionLabel(e.target.value)}
-          className="w-full h-8 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+        <div className="flex gap-2 items-center">
+          <input type="text" placeholder="What are you working on?" value={sessionLabel} onChange={(e) => setSessionLabel(e.target.value)}
+            className="flex-1 h-9 px-3 border border-border rounded-xl bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 placeholder:text-muted-foreground/50" />
+          <button onClick={() => setShowTaskPicker(!showTaskPicker)}
+            className="h-9 px-3 border border-border rounded-xl text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0">
+            📋
+          </button>
+        </div>
         <div className="flex gap-2">
           <select value={sessionSubject} onChange={(e) => setSessionSubject(e.target.value)}
-            className="h-7 px-2 border border-border rounded-lg bg-background text-foreground text-xs flex-1">
+            className="h-8 px-2 border border-border rounded-lg bg-background text-foreground text-xs flex-1 focus:outline-none focus:ring-2 focus:ring-primary/50">
             <option value="">Subject</option>
             {SUBJECTS.map(s => <option key={s} value={s}>{s}</option>)}
           </select>
           <input type="text" placeholder="Chapter" value={sessionChapter} onChange={(e) => setSessionChapter(e.target.value)}
-            className="h-7 px-2 border border-border rounded-lg bg-background text-foreground text-xs flex-1" />
+            className="h-8 px-2 border border-border rounded-lg bg-background text-foreground text-xs flex-1 focus:outline-none focus:ring-2 focus:ring-primary/50" />
         </div>
-        {linkedTasks.length > 0 && (
-          <div>
-            <div className="text-[10px] text-muted-foreground mb-1">Quick pick from tasks:</div>
-            <div className="flex flex-wrap gap-1">
-              {linkedTasks.slice(0, 6).map(t => (
-                <button key={t.id} onClick={() => handlePickTask(t)}
-                  className={`text-[10px] px-2 py-1 rounded-lg border transition-colors ${sessionLabel === t.title ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:text-foreground hover:bg-muted'}`}>
-                  {PRIORITY_ICONS_MINI[t.priority]} {t.title.slice(0, 25)}
-                </button>
-              ))}
-            </div>
+        {showTaskPicker && linkedTasks.length > 0 && (
+          <div className="border border-border rounded-lg p-2 bg-muted/30 space-y-0.5 max-h-36 overflow-y-auto">
+            {linkedTasks.map(t => (
+              <button key={t.id} onClick={() => handlePickTask(t)}
+                className={`w-full text-left text-xs px-2 py-1.5 rounded-lg transition-colors ${sessionLabel === t.title ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted'}`}>
+                {PRIORITY_ICONS_MINI[t.priority]} {t.title}
+                {t.estimatedMinutes && <span className="text-muted-foreground ml-1">· {t.estimatedMinutes}m</span>}
+              </button>
+            ))}
           </div>
         )}
       </div>
@@ -337,25 +352,16 @@ const PomodoroPage = () => {
       {/* Today's progress */}
       <div className="bg-card border border-border rounded-xl p-3">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-bold font-mono text-foreground">Today</span>
-          <span className="text-xs text-muted-foreground font-mono">{todayMinutes}/{dailyGoal}m</span>
+          <span className="text-sm font-bold font-mono text-foreground">Today's Focus</span>
+          <span className={`text-xs font-mono font-bold ${goalPct >= 100 ? 'text-[hsl(142,71%,40%)]' : 'text-muted-foreground'}`}>{todayMinutes}/{dailyGoal}m {goalPct >= 100 ? '🎉' : ''}</span>
         </div>
-        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mb-2">
-          <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${goalPct}%` }} />
+        <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+          <div className="h-full bg-primary rounded-full transition-all duration-700 ease-out" style={{ width: `${goalPct}%` }} />
         </div>
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div>
-            <div className="text-xl font-mono font-black text-primary">{todayFocus.length}</div>
-            <div className="text-[9px] text-muted-foreground">Sessions</div>
-          </div>
-          <div>
-            <div className="text-xl font-mono font-black text-foreground">{todayMinutes}</div>
-            <div className="text-[9px] text-muted-foreground">Minutes</div>
-          </div>
-          <div>
-            <div className="text-xl font-mono font-black text-accent">{(todayMinutes / 60).toFixed(1)}</div>
-            <div className="text-[9px] text-muted-foreground">Hours</div>
-          </div>
+        <div className="grid grid-cols-3 gap-3 mt-3 text-center">
+          <Stat value={String(todayFocus.length)} label="Sessions" color="text-primary" />
+          <Stat value={String(todayMinutes)} label="Minutes" color="text-foreground" />
+          <Stat value={(todayMinutes / 60).toFixed(1)} label="Hours" color="text-accent-foreground" />
         </div>
         {todayFocus.length > 0 && (
           <div className="pt-2 mt-2 border-t border-border space-y-0.5">
@@ -380,7 +386,26 @@ const PomodoroPage = () => {
   );
 };
 
-const PRIORITY_ICONS_MINI: Record<string, string> = { low: '🟢', medium: '🟡', high: '🔴' };
+function Stat({ value, label, color }: { value: string; label: string; color: string }) {
+  return (
+    <div>
+      <div className={`text-xl font-mono font-black ${color}`}>{value}</div>
+      <div className="text-[9px] text-muted-foreground uppercase tracking-wider">{label}</div>
+    </div>
+  );
+}
+
+function TimeEditInput({ value, onChange, onSave, onCancel }: { value: string; onChange: (v: string) => void; onSave: () => void; onCancel: () => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <input type="number" value={value} onChange={(e) => onChange(e.target.value)} autoFocus
+        onKeyDown={(e) => { if (e.key === 'Enter') onSave(); if (e.key === 'Escape') onCancel(); }}
+        onBlur={onSave}
+        className="w-16 h-10 text-center text-2xl font-mono font-black bg-background border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+      <span className="text-sm text-muted-foreground">min</span>
+    </div>
+  );
+}
 
 function SettingsPanel({ settings, onSave, onClose, dailyGoal, onDailyGoalChange }: {
   settings: PomodoroSettings; onSave: (s: PomodoroSettings) => void; onClose: () => void;
@@ -391,6 +416,7 @@ function SettingsPanel({ settings, onSave, onClose, dailyGoal, onDailyGoalChange
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-3">
+      <h3 className="text-sm font-bold font-mono text-foreground">Timer Settings</h3>
       <div className="grid grid-cols-2 gap-3">
         {[
           { label: 'Focus (min)', key: 'focusMinutes', min: 1, max: 120 },
@@ -399,32 +425,32 @@ function SettingsPanel({ settings, onSave, onClose, dailyGoal, onDailyGoalChange
           { label: 'Sessions before long', key: 'sessionsBeforeLong', min: 2, max: 10 },
         ].map(({ label, key, min, max }) => (
           <div key={key}>
-            <label className="text-xs text-muted-foreground">{label}</label>
+            <label className="text-[10px] text-muted-foreground uppercase tracking-wider">{label}</label>
             <input type="number" min={min} max={max} value={(s as any)[key]}
               onChange={(e) => setS({ ...s, [key]: +e.target.value })}
-              className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+              className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
           </div>
         ))}
       </div>
       <div>
-        <label className="text-xs text-muted-foreground">Daily Focus Goal (min)</label>
+        <label className="text-[10px] text-muted-foreground uppercase tracking-wider">Daily Goal (min)</label>
         <input type="number" min={10} max={600} value={goal} onChange={(e) => setGoal(+e.target.value)}
-          className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+          className="w-full h-9 px-3 border border-border rounded-lg bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
       </div>
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+        <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
           <input type="checkbox" checked={s.autoStartBreaks} onChange={(e) => setS({ ...s, autoStartBreaks: e.target.checked })} className="rounded border-border" />
           Auto-start breaks
         </label>
-        <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
+        <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
           <input type="checkbox" checked={s.autoStartFocus} onChange={(e) => setS({ ...s, autoStartFocus: e.target.checked })} className="rounded border-border" />
           Auto-start focus after break
         </label>
       </div>
       <div className="flex gap-2">
-        <button onClick={() => { onSave(s); onDailyGoalChange(goal); }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm">Save</button>
+        <button onClick={() => { onSave(s); onDailyGoalChange(goal); }} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-xs flex-1">Save</button>
         <button onClick={() => { onSave(DEFAULT_SETTINGS); onDailyGoalChange(120); }} className="px-3 py-2 border border-border rounded-lg text-xs text-muted-foreground hover:bg-muted">Reset</button>
-        <button onClick={onClose} className="px-3 py-2 border border-border rounded-lg text-sm text-foreground hover:bg-muted">Cancel</button>
+        <button onClick={onClose} className="px-3 py-2 border border-border rounded-lg text-xs text-foreground hover:bg-muted">Cancel</button>
       </div>
     </div>
   );
@@ -462,11 +488,11 @@ function RecentSessions() {
     <div className="bg-card border border-border rounded-xl p-3 space-y-2">
       <div className="flex items-center justify-between">
         <h2 className="font-bold font-mono text-foreground text-sm">Recent Sessions</h2>
-        <button onClick={() => setShowAddForm(!showAddForm)} className="px-2 py-1 text-xs bg-primary text-primary-foreground rounded-lg hover:opacity-90">+ Log</button>
+        <button onClick={() => setShowAddForm(!showAddForm)} className="px-2.5 py-1 text-[11px] bg-primary text-primary-foreground rounded-lg hover:opacity-90 font-bold">+ Log</button>
       </div>
 
       {showAddForm && (
-        <div className="p-3 bg-muted rounded-lg space-y-2 border border-border">
+        <div className="p-3 bg-muted/50 rounded-lg space-y-2 border border-border">
           <div className="grid grid-cols-2 gap-2">
             <select value={addForm.type} onChange={(e) => setAddForm({ ...addForm, type: e.target.value as any })}
               className="h-8 px-2 border border-border rounded-lg bg-background text-foreground text-xs">
@@ -496,13 +522,13 @@ function RecentSessions() {
       )}
 
       {sessions.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-3">No sessions yet</p>
+        <p className="text-xs text-muted-foreground text-center py-4">No sessions yet. Start your first focus! 🎯</p>
       ) : (
         <div className="space-y-0.5 max-h-48 overflow-y-auto">
           {sessions.map((s) => (
             <div key={s.id}>
               {editingId === s.id ? (
-                <div className="p-2 bg-muted rounded-lg space-y-2 border border-border">
+                <div className="p-2 bg-muted/50 rounded-lg space-y-2 border border-border">
                   <div className="grid grid-cols-2 gap-2">
                     <select value={editForm.type} onChange={(e) => setEditForm({ ...editForm, type: e.target.value as any })}
                       className="h-7 px-2 border border-border rounded bg-background text-foreground text-xs">
@@ -521,7 +547,7 @@ function RecentSessions() {
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between py-1 px-2 rounded text-xs hover:bg-muted/50 gap-2 group">
+                <div className="flex items-center justify-between py-1.5 px-2 rounded-lg text-xs hover:bg-muted/30 gap-2 group transition-colors">
                   <span className="shrink-0">{typeIcon[s.type]}</span>
                   <span className="text-foreground font-medium truncate flex-1">{s.label || s.subject || '—'}</span>
                   <span className="text-muted-foreground font-mono shrink-0">{s.durationMinutes}m</span>
