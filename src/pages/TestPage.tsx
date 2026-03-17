@@ -118,9 +118,9 @@ const TestPage = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Sticky header */}
-      <div className="sticky top-0 z-50 bg-card border-b-2 border-border px-4 py-2">
-        <div className="max-w-5xl mx-auto flex items-center justify-between gap-3 flex-wrap">
-          <div className="flex items-center gap-2">
+      <div className="sticky top-0 z-50 bg-card border-b-2 border-border px-2 sm:px-4 py-2">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-2 sm:gap-3 flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <button onClick={() => setShowQuitWarning(true)} className="px-2 py-2 border border-border rounded text-sm text-foreground hover:bg-muted" title="Home">🏠</button>
             <Timer
               totalSeconds={config.timeInMinutes * 60}
@@ -130,7 +130,7 @@ const TestPage = () => {
               wallClockStartTime={config.wallClockStartTime}
             />
           </div>
-          <div className="flex items-center gap-3 text-sm font-mono flex-wrap">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-sm font-mono flex-wrap justify-end">
             {dp.showQuestionRange && (
               <span className="text-muted-foreground text-xs">Q{config.startFrom}–{config.startFrom + config.totalQuestions - 1}</span>
             )}
@@ -154,7 +154,7 @@ const TestPage = () => {
         </div>
 
         {sections.length > 1 && (
-          <div className="max-w-5xl mx-auto flex gap-1 mt-2 overflow-x-auto">
+          <div className="max-w-5xl mx-auto flex gap-1 mt-2 overflow-x-auto pb-1">
             {sections.map((sec, i) => {
               const secR = responses.filter(r => r.questionNo >= sec.startQ && r.questionNo <= sec.endQ);
               const secAns = secR.filter(r => r.selected !== null).length;
@@ -171,8 +171,8 @@ const TestPage = () => {
         )}
       </div>
 
-      <div className="flex flex-1 max-w-5xl mx-auto w-full">
-        <div className="flex-1 p-4 pt-2">
+      <div className="flex flex-1 max-w-5xl mx-auto w-full min-w-0">
+        <div className="flex-1 p-2 sm:p-4 pt-2 min-w-0">
           <p className="text-xs text-muted-foreground italic mb-2">
             💡 Right-click to eliminate. Auto-saving continuously.
           </p>
@@ -196,10 +196,10 @@ const TestPage = () => {
                     ${r.selected ? 'border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}
                   `}
                 >
-                  <span className="font-mono text-sm font-bold text-muted-foreground w-12 text-right shrink-0">
+                  <span className="font-mono text-xs sm:text-sm font-bold text-muted-foreground w-10 sm:w-12 text-right shrink-0">
                     {r.questionNo}
                   </span>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1 sm:gap-1.5">
                     {optionsList.map((opt) => {
                       const isElim = qEliminated.has(opt!);
                       const isSelected = r.selected === opt;
@@ -209,7 +209,7 @@ const TestPage = () => {
                           type="button"
                           onClick={() => handleLeftClick(r.questionNo, opt, isElim)}
                           onContextMenu={(e) => handleRightClick(e, r.questionNo, opt!)}
-                          className={`w-10 h-10 rounded-full border-2 font-bold font-mono text-sm transition-all relative
+                          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 font-bold font-mono text-xs sm:text-sm transition-all relative
                             ${isSelected
                               ? 'bg-primary text-primary-foreground border-primary scale-110'
                               : isElim
@@ -231,7 +231,7 @@ const TestPage = () => {
                       );
                     })}
                   </div>
-                  <div className="flex items-center gap-0.5 ml-auto">
+                  <div className="flex items-center gap-0.5 ml-auto shrink-0">
                     {(Object.entries(MARK_ICONS) as [MarkType, typeof MARK_ICONS[MarkType]][]).map(([type, meta]) => {
                       const active = r.marks.includes(type);
                       return (
@@ -239,7 +239,7 @@ const TestPage = () => {
                           key={type}
                           type="button"
                           onClick={() => toggleMark(r.questionNo, type)}
-                          className={`w-7 h-7 rounded text-sm transition-all ${
+                          className={`w-6 h-6 sm:w-7 sm:h-7 rounded text-xs sm:text-sm transition-all ${
                             active ? meta.color : 'text-border hover:text-muted-foreground'
                           }`}
                           title={meta.label}
@@ -256,14 +256,14 @@ const TestPage = () => {
         </div>
 
         {showPanel && (
-          <div className="w-56 shrink-0 border-l border-border bg-card p-3 overflow-y-auto sticky top-[4.5rem] h-[calc(100vh-4.5rem)]">
+          <div className="hidden md:block w-56 shrink-0 border-l border-border bg-card p-3 overflow-y-auto sticky top-[4.5rem] h-[calc(100vh-4.5rem)]">
             <div className="text-xs font-mono font-bold text-muted-foreground mb-2">QUESTION PANEL</div>
             {sections.map((sec, si) => (
               <div key={si} className="mb-3">
                 {sections.length > 1 && (
                   <div className="text-[10px] font-mono font-bold text-foreground mb-1">{sec.name}</div>
                 )}
-                <div className="grid grid-cols-5 gap-1">
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-1">
                   {responses
                     .filter(r => r.questionNo >= sec.startQ && r.questionNo <= sec.endQ)
                     .map(r => {
@@ -273,7 +273,7 @@ const TestPage = () => {
                         <button
                           key={r.questionNo}
                           onClick={() => scrollToQuestion(r.questionNo)}
-                          className={`w-8 h-8 rounded text-[10px] font-mono font-bold transition-all border ${
+                          className={`w-7 h-7 sm:w-8 sm:h-8 rounded text-[10px] font-mono font-bold transition-all border ${
                             isAnswered && hasMarks
                               ? 'bg-primary/70 text-primary-foreground border-[hsl(var(--review))] border-2'
                               : isAnswered
@@ -292,9 +292,9 @@ const TestPage = () => {
               </div>
             ))}
             <div className="mt-3 space-y-1 text-[9px] font-mono text-muted-foreground border-t border-border pt-2">
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-primary" /> Answered</div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-[hsl(var(--review))]/20 border border-[hsl(var(--review))]/50" /> Marked</div>
-              <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded bg-muted border border-border" /> Unanswered</div>
+              <div className="flex items-center gap-1 sm:gap-1.5"><div className="w-3 h-3 rounded bg-primary" /> Answered</div>
+              <div className="flex items-center gap-1 sm:gap-1.5"><div className="w-3 h-3 rounded bg-[hsl(var(--review))]/20 border border-[hsl(var(--review))]/50" /> Marked</div>
+              <div className="flex items-center gap-1 sm:gap-1.5"><div className="w-3 h-3 rounded bg-muted border border-border" /> Unanswered</div>
             </div>
           </div>
         )}
@@ -323,7 +323,7 @@ const TestPage = () => {
                 })}
               </div>
             )}
-            <div className="flex gap-3 justify-end">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 justify-end">
               <button onClick={() => setShowConfirm(false)} className="px-4 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted">Continue Test</button>
               <button onClick={handleEnd} className="px-4 py-2 bg-primary text-primary-foreground rounded text-sm font-bold hover:opacity-90">Submit</button>
             </div>
@@ -339,7 +339,7 @@ const TestPage = () => {
             <p className="text-sm text-muted-foreground">
               Your progress is auto-saved. You have answered <strong>{stats.answered}/{stats.total}</strong> questions.
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 justify-end">
               <button onClick={() => setShowQuitWarning(false)} className="px-4 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted">Continue Test</button>
               <button onClick={handleEnd} className="px-4 py-2 bg-[hsl(var(--review))] text-foreground rounded text-sm font-bold hover:opacity-90">Submit & Exit</button>
               <button onClick={() => navigate('/')} className="px-4 py-2 bg-destructive text-destructive-foreground rounded text-sm font-bold hover:opacity-90">Quit</button>

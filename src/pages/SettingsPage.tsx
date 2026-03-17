@@ -7,6 +7,8 @@ import { getShortcuts, saveShortcuts, DEFAULT_SHORTCUTS, SHORTCUT_LABELS, type S
 import { getSavedTests, type SavedTest } from '@/lib/testHistory';
 import type { TestSection } from '@/types/test';
 
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || 'v0.3.0';
+
 const ALL_STORAGE_KEYS = [
   'workspace_name',
   'workspace_syllabus',
@@ -26,13 +28,28 @@ const ALL_STORAGE_KEYS = [
 
 function exportAllData(): string {
   const data: Record<string, any> = {};
-  for (const key of ALL_STORAGE_KEYS) {
+  const keys = new Set<string>(ALL_STORAGE_KEYS);
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (!k) continue;
+    if (k.startsWith('workspace_') || k.startsWith('omr_') || k === 'theme' || k === 'pomo_daily_goal') {
+      keys.add(k);
+    }
+  }
+
+  for (const key of keys) {
     const raw = localStorage.getItem(key);
     if (raw !== null) {
       try { data[key] = JSON.parse(raw); } catch { data[key] = raw; }
     }
   }
-  return JSON.stringify({ _export: 'workspace_backup', _version: 1, _exportedAt: new Date().toISOString(), data }, null, 2);
+  return JSON.stringify({
+    _export: 'workspace_backup',
+    _version: 2,
+    _appVersion: APP_VERSION,
+    _exportedAt: new Date().toISOString(),
+    data,
+  }, null, 2);
 }
 
 function importAllData(json: string): { success: boolean; message: string } {
@@ -137,11 +154,28 @@ const SettingsPage = () => {
 
   return (
     <div className="min-h-screen bg-background p-4 pb-16">
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto space-y-6 px-3 sm:px-4 py-4 sm:py-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground font-mono">⚙️ Settings</h1>
           <p className="text-sm text-muted-foreground mt-1">Manage your workspace preferences and data.</p>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">App Version</CardTitle>
+            <CardDescription>
+              Use this version number to confirm new updates are applied.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="inline-flex items-center px-3 py-1 rounded-lg bg-primary/10 border border-primary/20 font-mono text-sm font-bold text-primary">
+              {APP_VERSION}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              If this value changes after an update, you are on a newer build.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Workspace Name */}
         <Card>
@@ -267,7 +301,9 @@ const SettingsPage = () => {
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Data Backup</CardTitle>
-            <CardDescription>Export all your data as a JSON file, or import a previous backup.</CardDescription>
+            <CardDescription>
+              Export all your local data to migrate into future versions, or import a previous backup.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex flex-wrap gap-2">
@@ -281,7 +317,25 @@ const SettingsPage = () => {
               </div>
             )}
             <p className="text-[11px] text-muted-foreground">
-              Includes: syllabus, notes, todos, mistakes, test history, planned tests, countdowns, pomodoro, shortcuts, and settings.
+              Includes all workspace/OMR keys (syllabus, notes, todos, mistakes, tests, planned tests, countdowns, pomodoro, shortcuts, theme, and settings).
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              Migration flow: Export on old version → update app → Import in new version → refresh.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Collaboration & Cloud Sync</CardTitle>
+            <CardDescription>Planned next step for multi-user accounts and live study collaboration.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>
+              To support 2-3+ users with username/password, real-time chat, shared plans, and online sync, we need a backend service (auth + database + realtime).
+            </p>
+            <p>
+              This update adds versioning + robust export/import migration so your current local data can move safely to that cloud-enabled version.
             </p>
           </CardContent>
         </Card>

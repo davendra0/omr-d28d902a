@@ -366,7 +366,7 @@ const SyllabusPage = () => {
 
   return (
     <div className="min-h-screen bg-background p-4 pb-16">
-      <div className="max-w-6xl mx-auto space-y-5">
+      <div className="max-w-6xl mx-auto space-y-5 px-3 sm:px-4 py-4 sm:py-6">
         {/* Header */}
         <div className="bg-card border border-border rounded-xl p-5">
           <h1 className="text-2xl font-bold text-foreground font-mono">📚 Syllabus Tracker</h1>

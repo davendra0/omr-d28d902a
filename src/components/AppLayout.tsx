@@ -67,7 +67,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex overflow-x-hidden">
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
@@ -80,7 +80,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
       <aside
         className={cn(
           'fixed lg:sticky top-0 left-0 z-50 h-screen bg-card border-r border-border flex flex-col transition-all duration-200',
-          collapsed ? 'w-16' : 'w-56',
+          collapsed ? 'w-16 lg:w-16' : 'w-[85vw] max-w-64 lg:w-56',
           sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
@@ -177,7 +177,7 @@ const AppLayout = ({ children }: AppLayoutProps) => {
           <span className="font-mono font-bold text-foreground text-sm">⚡ {workspaceName}</span>
         </header>
 
-        <main className="flex-1">
+        <main className="flex-1 min-w-0">
           {children}
         </main>
       </div>

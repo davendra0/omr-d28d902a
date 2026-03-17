@@ -153,7 +153,7 @@ const SetupPage = () => {
           <p className="text-xs text-muted-foreground mb-3">
             {autosave.config.totalQuestions}Q test from {new Date(autosave.savedAt).toLocaleString()}
           </p>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <button onClick={handleResumeAutosave} className="px-3 py-1.5 bg-primary text-primary-foreground rounded font-bold text-xs hover:opacity-90">▶ Resume</button>
             <button onClick={handleDismissAutosave} className="px-3 py-1.5 border border-border rounded text-xs text-muted-foreground hover:bg-muted">Dismiss</button>
           </div>
@@ -165,9 +165,9 @@ const SetupPage = () => {
           <div className="text-sm font-bold text-primary font-mono mb-2">🔔 Today's Tests</div>
           <div className="space-y-2">
             {todayTests.map(t => (
-              <div key={t.id} className="flex items-center justify-between gap-2">
+              <div key={t.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                 <span className="text-sm font-mono text-foreground truncate">{t.name}</span>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground shrink-0">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <span>{t.totalQuestions}Q · {t.timeInMinutes}m</span>
                   <button onClick={() => handleStartPlanned(t)} className="px-3 py-1.5 bg-primary text-primary-foreground rounded font-bold text-xs hover:opacity-90 transition-opacity">▶ Start</button>
                 </div>
@@ -177,13 +177,13 @@ const SetupPage = () => {
         </div>
       )}
 
-      <div className="flex gap-1 bg-muted rounded-lg p-1">
+      <div className="flex gap-1 bg-muted rounded-lg p-1 overflow-x-auto">
         {tabs.map(t => (
           <button
             key={t.key}
             onClick={() => t.key === 'history' ? navigate('/omr/history') : setTab(t.key)}
             className={cn(
-              'flex-1 py-2 px-2 rounded-md text-xs sm:text-sm font-medium transition-colors',
+              'min-w-max sm:min-w-0 flex-1 py-2 px-2 rounded-md text-xs sm:text-sm font-medium transition-colors whitespace-nowrap',
               tab === t.key && t.key !== 'history' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             )}
           >
@@ -194,7 +194,7 @@ const SetupPage = () => {
 
       {/* Quick Start */}
       {tab === 'quick' && (
-        <div className="space-y-5 bg-card border border-border rounded-lg p-6">
+        <div className="space-y-5 bg-card border border-border rounded-lg p-4 sm:p-6">
           <div className="text-sm font-bold font-mono text-foreground">⚡ Quick Start</div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Number of Questions</label>
@@ -235,14 +235,14 @@ const SetupPage = () => {
 
       {/* Plan Test */}
       {tab === 'plan' && (
-        <div className="space-y-5 bg-card border border-border rounded-lg p-6">
+        <div className="space-y-5 bg-card border border-border rounded-lg p-4 sm:p-6">
           <div className="text-sm font-bold font-mono text-foreground">📅 Plan a Test</div>
           <div>
             <label className="block text-sm font-medium text-foreground mb-1">Test Name</label>
             <input type="text" placeholder="e.g. Physics Mock Test 3" value={planName} onChange={(e) => setPlanName(e.target.value)}
               className="w-full h-12 px-4 text-lg font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-foreground mb-1">Questions</label>
               <input type="number" min={1} placeholder="e.g. 90" value={planQuestions} onChange={(e) => setPlanQuestions(e.target.value)}
@@ -351,21 +351,21 @@ function SectionBuilder({ sections, onChange }: { sections: SectionInput[]; onCh
         <p className="text-xs text-muted-foreground italic">No sections — the entire paper is one block. Add sections to divide by subjects.</p>
       )}
       {sections.map((s, i) => (
-        <div key={i} className="flex gap-2 items-end">
+        <div key={i} className="flex flex-wrap sm:flex-nowrap gap-2 items-end">
           <div className="flex-1">
             <input type="text" placeholder="e.g. Physics" value={s.name} onChange={(e) => updateSection(i, 'name', e.target.value)}
               className="w-full h-10 px-3 text-sm font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
-          <div className="w-20">
+          <div className="w-[calc(50%-0.5rem)] sm:w-20">
             <input type="number" placeholder="From" value={s.startQ} onChange={(e) => updateSection(i, 'startQ', e.target.value)}
               className="w-full h-10 px-2 text-sm font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
           <span className="text-muted-foreground text-sm pb-2">–</span>
-          <div className="w-20">
+          <div className="w-[calc(50%-0.5rem)] sm:w-20">
             <input type="number" placeholder="To" value={s.endQ} onChange={(e) => updateSection(i, 'endQ', e.target.value)}
               className="w-full h-10 px-2 text-sm font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
           </div>
-          <button onClick={() => removeSection(i)} className="h-10 px-2 text-destructive hover:bg-destructive/10 rounded text-sm">✕</button>
+          <button onClick={() => removeSection(i)} className="h-10 px-2 text-destructive hover:bg-destructive/10 rounded text-sm ml-auto sm:ml-0">✕</button>
         </div>
       ))}
     </div>

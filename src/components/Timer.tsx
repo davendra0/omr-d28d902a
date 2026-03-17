@@ -77,14 +77,14 @@ const Timer = ({ totalSeconds, onTimeUp, showCountdown = true, showWallClock = f
   }
 
   return (
-    <div className="flex items-center gap-2 flex-wrap">
+    <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
       {showCountdown && (
-        <span className={`font-mono text-xl font-bold ${colorClass} transition-colors`}>
+        <span className={`font-mono text-base sm:text-xl font-bold ${colorClass} transition-colors`}>
           ⏱ {pad(hours)}:{pad(mins)}:{pad(secs)}
         </span>
       )}
       {showWallClock && (
-        <span className="font-mono text-lg font-bold text-foreground">
+        <span className="font-mono text-sm sm:text-lg font-bold text-foreground">
           🕐 {wallStr}
         </span>
       )}

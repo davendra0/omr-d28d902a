@@ -76,15 +76,15 @@ const HomePage = () => {
   ];
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 sm:space-y-8">
       {/* Autosave recovery */}
       {hasAutosave && (
-        <div className="bg-[hsl(var(--review))]/10 border border-[hsl(var(--review))]/30 rounded-xl p-4 flex items-center justify-between">
+        <div className="bg-[hsl(var(--review))]/10 border border-[hsl(var(--review))]/30 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
           <div>
             <div className="text-sm font-bold text-foreground">⚠️ Unsaved test found</div>
             <div className="text-xs text-muted-foreground">You have an auto-saved test in progress. Resume or discard it.</div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto">
             <button onClick={() => {
               try {
                 const raw = JSON.parse(localStorage.getItem('omr_autosave') || '');
@@ -93,9 +93,9 @@ const HomePage = () => {
                 useTestStore.setState({ responses: raw.responses, startTime: raw.startTime || Date.now() });
                 navigate('/test');
               } catch {}
-            }} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold">Resume</button>
+            }} className="px-3 py-1.5 bg-primary text-primary-foreground rounded-lg text-xs font-bold flex-1 sm:flex-none">Resume</button>
             <button onClick={() => { localStorage.removeItem('omr_autosave'); setHasAutosave(false); }}
-              className="px-3 py-1.5 border border-border rounded-lg text-xs text-muted-foreground hover:bg-muted">Discard</button>
+              className="px-3 py-1.5 border border-border rounded-lg text-xs text-muted-foreground hover:bg-muted flex-1 sm:flex-none">Discard</button>
           </div>
         </div>
       )}
