@@ -67,7 +67,7 @@ const ResultsPage = () => {
 
   return (
     <div className="min-h-screen bg-background p-4">
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-4xl mx-auto space-y-6 px-1 sm:px-0">
         {/* Header */}
          <div className="flex items-center justify-between flex-wrap gap-3">
            <h1 className="text-2xl font-bold font-mono text-foreground">Response Sheet</h1>
@@ -169,25 +169,25 @@ const ResultsPage = () => {
           {responses.map((r, idx) => (
             <div
               key={r.questionNo}
-              className={`flex items-center gap-3 px-4 py-2.5 border-b border-border/30
+              className={`flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5 border-b border-border/30
                 ${idx % 2 === 0 ? '' : 'bg-muted/20'}
               `}
             >
-              <span className="font-mono text-sm font-bold text-muted-foreground w-14 text-right shrink-0">
+              <span className="font-mono text-xs sm:text-sm font-bold text-muted-foreground w-10 sm:w-14 text-right shrink-0">
                 Q.{r.questionNo}
               </span>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 {options.map((opt) => (
                   <div
                     key={opt}
-                    className={`w-9 h-9 rounded-full border-2 flex items-center justify-center text-xs font-bold font-mono ${getBubbleClass(r, opt)}`}
+                    className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full border-2 flex items-center justify-center text-[11px] sm:text-xs font-bold font-mono ${getBubbleClass(r, opt)}`}
                   >
                     {opt}
                   </div>
                 ))}
               </div>
               {answerKey && r.selected && (
-                <span className="ml-2 font-mono text-xs font-bold">
+                <span className="ml-auto sm:ml-2 font-mono text-xs font-bold">
                   {r.selected === answerKey[r.questionNo] ? (
                     <span className="text-success">+4</span>
                   ) : (
@@ -196,7 +196,7 @@ const ResultsPage = () => {
                 </span>
               )}
               {answerKey && !r.selected && (
-                <span className="ml-2 font-mono text-xs text-muted-foreground">0</span>
+                <span className="ml-auto sm:ml-2 font-mono text-xs text-muted-foreground">0</span>
               )}
             </div>
           ))}
@@ -225,7 +225,7 @@ const ResultsPage = () => {
               autoFocus
               className="w-full px-3 py-2 border border-border rounded text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
             />
-            <div className="flex gap-3 justify-end">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 justify-end">
               <button
                 onClick={() => setShowExportDialog(false)}
                 className="px-4 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted"
@@ -286,7 +286,7 @@ const ResultsPage = () => {
                   autoFocus
                   className="w-full px-3 py-2 border border-border rounded text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <div className="flex gap-3 justify-end">
+                <div className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-3 justify-end">
                   <button
                     onClick={() => setShowSaveDialog(false)}
                     className="px-4 py-2 border border-border rounded text-sm font-medium text-foreground hover:bg-muted"
