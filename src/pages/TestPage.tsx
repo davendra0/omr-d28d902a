@@ -187,50 +187,67 @@ const TestPage = () => {
           <div className="bg-card border border-border rounded-lg overflow-hidden">
             {sectionResponses.map((r, idx) => {
               const qEliminated = eliminated[r.questionNo] || new Set();
+              // Determine if this question is in a numerical section
+              const isNumerical = config.sections.some(s => s.type === 'numerical' && r.questionNo >= s.startQ && r.questionNo <= s.endQ);
               return (
                 <div
                   key={r.questionNo}
                   ref={(el) => { rowRefs.current[r.questionNo] = el; }}
                   className={`flex items-center gap-2 px-3 py-2.5 border-b border-border/50 transition-colors
                     ${r.marks.length > 0 ? 'bg-[hsl(var(--review))]/8' : idx % 2 === 0 ? 'bg-card' : 'bg-muted/30'}
-                    ${r.selected ? 'border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}
+                    ${(r.selected || r.numericalAnswer) ? 'border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}
                   `}
                 >
                   <span className="font-mono text-sm font-bold text-muted-foreground w-12 text-right shrink-0">
                     {r.questionNo}
                   </span>
-                  <div className="flex items-center gap-1.5">
-                    {optionsList.map((opt) => {
-                      const isElim = qEliminated.has(opt!);
-                      const isSelected = r.selected === opt;
-                      return (
-                        <button
-                          key={opt}
-                          type="button"
-                          onClick={() => handleLeftClick(r.questionNo, opt, isElim)}
-                          onContextMenu={(e) => handleRightClick(e, r.questionNo, opt!)}
-                          className={`w-10 h-10 rounded-full border-2 font-bold font-mono text-sm transition-all relative
-                            ${isSelected
-                              ? 'bg-primary text-primary-foreground border-primary scale-110'
-                              : isElim
-                                ? 'border-border text-muted-foreground/30 line-through'
-                                : 'border-border text-muted-foreground hover:border-primary hover:text-foreground hover:scale-105'
-                            }
-                          `}
-                        >
-                          {opt}
-                          {isElim && (
-                            <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                              <svg viewBox="0 0 40 40" className="w-8 h-8 text-destructive/60">
-                                <line x1="8" y1="8" x2="32" y2="32" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                                <line x1="32" y1="8" x2="8" y2="32" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
-                              </svg>
-                            </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  {isNumerical ? (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={r.numericalAnswer || ''}
+                        onChange={(e) => setNumericalAnswer(r.questionNo, e.target.value)}
+                        placeholder="Enter value"
+                        className="w-32 h-10 px-3 text-sm font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      {r.numericalAnswer && (
+                        <span className="text-xs text-primary font-mono font-bold">✓</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5">
+                      {optionsList.map((opt) => {
+                        const isElim = qEliminated.has(opt!);
+                        const isSelected = r.selected === opt;
+                        return (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => handleLeftClick(r.questionNo, opt, isElim)}
+                            onContextMenu={(e) => handleRightClick(e, r.questionNo, opt!)}
+                            className={`w-10 h-10 rounded-full border-2 font-bold font-mono text-sm transition-all relative
+                              ${isSelected
+                                ? 'bg-primary text-primary-foreground border-primary scale-110'
+                                : isElim
+                                  ? 'border-border text-muted-foreground/30 line-through'
+                                  : 'border-border text-muted-foreground hover:border-primary hover:text-foreground hover:scale-105'
+                              }
+                            `}
+                          >
+                            {opt}
+                            {isElim && (
+                              <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <svg viewBox="0 0 40 40" className="w-8 h-8 text-destructive/60">
+                                  <line x1="8" y1="8" x2="32" y2="32" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                                  <line x1="32" y1="8" x2="8" y2="32" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                                </svg>
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   <div className="flex items-center gap-0.5 ml-auto">
                     {(Object.entries(MARK_ICONS) as [MarkType, typeof MARK_ICONS[MarkType]][]).map(([type, meta]) => {
                       const active = r.marks.includes(type);
