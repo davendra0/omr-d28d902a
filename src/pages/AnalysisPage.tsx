@@ -590,8 +590,8 @@ function QuestionTable({
                   {sortMode === 'attempt' && (
                     <span className="font-mono text-[10px] text-muted-foreground w-8">#{item.attemptIdx}</span>
                   )}
-                  <span className={`font-mono font-bold w-8 ${!item.selected ? 'text-muted-foreground/40' : 'text-foreground'}`}>{item.selected ?? '—'}</span>
-                  <span className="font-mono font-bold w-8 text-primary">{item.correct ?? '—'}</span>
+                  <span className={`font-mono font-bold w-12 ${!item.selected && !item.numericalAnswer ? 'text-muted-foreground/40' : 'text-foreground'}`}>{item.numericalAnswer || item.selected || '—'}</span>
+                  <span className="font-mono font-bold w-12 text-primary">{item.isBonus ? '🎁' : Array.isArray(item.correct) ? item.correct.join(',') : item.correct ?? '—'}</span>
                   <span className="font-mono text-xs font-bold w-10">
                     {item.isSkipped ? <span className="text-muted-foreground">SKIP</span> : item.isCorrect ? <span className="text-[hsl(var(--success))]">✓</span> : <span className="text-destructive">✗</span>}
                   </span>
