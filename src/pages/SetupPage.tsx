@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import type { TestSection, DisplayPrefs } from '@/types/test';
+import type { TestSection, DisplayPrefs, SectionType } from '@/types/test';
 import { DEFAULT_DISPLAY_PREFS } from '@/types/test';
 
 type Tab = 'quick' | 'plan' | 'upcoming' | 'history';
