@@ -13,6 +13,7 @@ interface TestStore {
   setConfig: (config: TestConfig) => void;
   startTest: () => void;
   selectOption: (questionNo: number, option: Option) => void;
+  setNumericalAnswer: (questionNo: number, answer: string) => void;
   toggleReview: (questionNo: number) => void;
   toggleMark: (questionNo: number, mark: MarkType) => void;
   endTest: () => void;
@@ -57,6 +58,17 @@ export const useTestStore = create<TestStore>((set, get) => ({
       responses: responses.map((r) =>
         r.questionNo === questionNo
           ? { ...r, selected: r.selected === option ? null : option, answeredAt: Date.now() }
+          : r
+      ),
+    });
+  },
+
+  setNumericalAnswer: (questionNo, answer) => {
+    const { responses } = get();
+    set({
+      responses: responses.map((r) =>
+        r.questionNo === questionNo
+          ? { ...r, numericalAnswer: answer, answeredAt: answer ? Date.now() : r.answeredAt }
           : r
       ),
     });

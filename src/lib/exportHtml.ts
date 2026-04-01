@@ -28,15 +28,33 @@ export function exportTestAsHtml({ testName, result, answerKey }: ExportData) {
   });
 
   responses.forEach(r => {
-    const correctAns = answerKey ? (answerKey[r.questionNo] ?? null) : null;
-    const isCorrect = r.selected !== null && r.selected === correctAns;
-    const isWrong = r.selected !== null && correctAns !== null && r.selected !== correctAns;
-    const isSkip = r.selected === null;
+    const rawAns = answerKey ? (answerKey[r.questionNo] ?? null) : null;
+    const correctAns = rawAns as any;
+    const isBonus = correctAns === 'BONUS';
+    const isMulti = Array.isArray(correctAns);
+    const isNumerical = typeof correctAns === 'string' && correctAns !== 'BONUS' && !['A','B','C','D'].includes(correctAns);
+    const userAnswer = r.numericalAnswer || r.selected;
+    
+    let isCorrect = false;
+    let isWrong = false;
+    if (isBonus) {
+      isCorrect = true;
+    } else if (isMulti) {
+      isCorrect = r.selected !== null && correctAns.includes(r.selected);
+      isWrong = r.selected !== null && !correctAns.includes(r.selected);
+    } else if (isNumerical) {
+      isCorrect = r.numericalAnswer?.trim() === correctAns.trim();
+      isWrong = !!r.numericalAnswer && r.numericalAnswer.trim() !== correctAns.trim();
+    } else {
+      isCorrect = r.selected !== null && r.selected === correctAns;
+      isWrong = r.selected !== null && correctAns !== null && r.selected !== correctAns;
+    }
+    const isSkip = r.selected === null && !r.numericalAnswer;
     const marks = isCorrect ? 4 : isWrong ? -1 : 0;
     if (isCorrect) { correct++; score += 4; }
     else if (isWrong) { incorrect++; score -= 1; }
     else { skipped++; }
-    questionData.push({ qNo: r.questionNo, selected: r.selected, correctAns, marks, isCorrect, isWrong, isSkipped: isSkip, timeGap: timeGaps[r.questionNo] ?? null });
+    questionData.push({ qNo: r.questionNo, selected: userAnswer as any, correctAns, marks, isCorrect, isWrong, isSkipped: isSkip, timeGap: timeGaps[r.questionNo] ?? null });
   });
 
   const maxScore = responses.length * 4;
