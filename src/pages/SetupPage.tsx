@@ -12,7 +12,7 @@ import { DEFAULT_DISPLAY_PREFS } from '@/types/test';
 
 type Tab = 'quick' | 'plan' | 'upcoming' | 'history';
 
-interface SectionInput { name: string; startQ: string; endQ: string }
+interface SectionInput { name: string; startQ: string; endQ: string; type: SectionType }
 
 const AUTOSAVE_KEY = 'omr_autosave';
 
