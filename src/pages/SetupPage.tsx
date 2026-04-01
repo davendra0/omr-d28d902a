@@ -63,7 +63,7 @@ const SetupPage = () => {
   const buildSections = (inputs: SectionInput[]): TestSection[] => {
     const valid = inputs.filter(s => s.name.trim() && parseInt(s.startQ) && parseInt(s.endQ));
     if (valid.length === 0) return [];
-    return valid.map(s => ({ name: s.name.trim(), startQ: parseInt(s.startQ), endQ: parseInt(s.endQ) }));
+    return valid.map(s => ({ name: s.name.trim(), startQ: parseInt(s.startQ), endQ: parseInt(s.endQ), type: s.type || 'mcq' }));
   };
 
   const handleQuickStart = () => {
