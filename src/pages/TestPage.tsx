@@ -84,7 +84,7 @@ const TestPage = () => {
   }, [responses]);
 
   const sectionStats = useMemo(() => {
-    const answered = sectionResponses.filter((r) => r.selected !== null).length;
+    const answered = sectionResponses.filter((r) => r.selected !== null || !!r.numericalAnswer).length;
     return { answered, total: sectionResponses.length };
   }, [sectionResponses]);
 
