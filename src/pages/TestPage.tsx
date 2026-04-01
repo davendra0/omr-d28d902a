@@ -78,7 +78,7 @@ const TestPage = () => {
   }, [responses, currentSection]);
 
   const stats = useMemo(() => {
-    const answered = responses.filter((r) => r.selected !== null).length;
+    const answered = responses.filter((r) => r.selected !== null || !!r.numericalAnswer).length;
     const marked = responses.filter((r) => r.marks.length > 0).length;
     return { answered, marked, total: responses.length, left: responses.length - answered };
   }, [responses]);
