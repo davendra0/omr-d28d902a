@@ -54,7 +54,7 @@ export function exportTestAsHtml({ testName, result, answerKey }: ExportData) {
     if (isCorrect) { correct++; score += 4; }
     else if (isWrong) { incorrect++; score -= 1; }
     else { skipped++; }
-    questionData.push({ qNo: r.questionNo, selected: userAnswer, correctAns, marks, isCorrect, isWrong, isSkipped: isSkip, timeGap: timeGaps[r.questionNo] ?? null });
+    questionData.push({ qNo: r.questionNo, selected: userAnswer as any, correctAns, marks, isCorrect, isWrong, isSkipped: isSkip, timeGap: timeGaps[r.questionNo] ?? null });
   });
 
   const maxScore = responses.length * 4;
