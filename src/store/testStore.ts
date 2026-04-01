@@ -13,6 +13,7 @@ interface TestStore {
   setConfig: (config: TestConfig) => void;
   startTest: () => void;
   selectOption: (questionNo: number, option: Option) => void;
+  setNumericalAnswer: (questionNo: number, answer: string) => void;
   toggleReview: (questionNo: number) => void;
   toggleMark: (questionNo: number, mark: MarkType) => void;
   endTest: () => void;
