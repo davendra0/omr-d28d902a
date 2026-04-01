@@ -333,7 +333,7 @@ const SetupPage = () => {
 
 // Section Builder Component
 function SectionBuilder({ sections, onChange }: { sections: SectionInput[]; onChange: (s: SectionInput[]) => void }) {
-  const addSection = () => onChange([...sections, { name: '', startQ: '', endQ: '' }]);
+  const addSection = () => onChange([...sections, { name: '', startQ: '', endQ: '', type: 'mcq' }]);
   const removeSection = (i: number) => onChange(sections.filter((_, idx) => idx !== i));
   const updateSection = (i: number, field: keyof SectionInput, val: string) => {
     const copy = [...sections];
@@ -351,21 +351,34 @@ function SectionBuilder({ sections, onChange }: { sections: SectionInput[]; onCh
         <p className="text-xs text-muted-foreground italic">No sections — the entire paper is one block. Add sections to divide by subjects.</p>
       )}
       {sections.map((s, i) => (
-        <div key={i} className="flex gap-2 items-end">
-          <div className="flex-1">
-            <input type="text" placeholder="e.g. Physics" value={s.name} onChange={(e) => updateSection(i, 'name', e.target.value)}
-              className="w-full h-10 px-3 text-sm font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+        <div key={i} className="space-y-2 bg-muted/30 rounded-lg p-3 border border-border/50">
+          <div className="flex gap-2 items-end">
+            <div className="flex-1">
+              <input type="text" placeholder="e.g. Physics" value={s.name} onChange={(e) => updateSection(i, 'name', e.target.value)}
+                className="w-full h-10 px-3 text-sm font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <div className="w-20">
+              <input type="number" placeholder="From" value={s.startQ} onChange={(e) => updateSection(i, 'startQ', e.target.value)}
+                className="w-full h-10 px-2 text-sm font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <span className="text-muted-foreground text-sm pb-2">–</span>
+            <div className="w-20">
+              <input type="number" placeholder="To" value={s.endQ} onChange={(e) => updateSection(i, 'endQ', e.target.value)}
+                className="w-full h-10 px-2 text-sm font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+            </div>
+            <button onClick={() => removeSection(i)} className="h-10 px-2 text-destructive hover:bg-destructive/10 rounded text-sm">✕</button>
           </div>
-          <div className="w-20">
-            <input type="number" placeholder="From" value={s.startQ} onChange={(e) => updateSection(i, 'startQ', e.target.value)}
-              className="w-full h-10 px-2 text-sm font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-muted-foreground">TYPE:</span>
+            <button onClick={() => updateSection(i, 'type', 'mcq')}
+              className={`px-2 py-1 rounded text-[11px] font-mono font-bold transition-colors ${s.type === 'mcq' || !s.type ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground'}`}>
+              MCQ (A/B/C/D)
+            </button>
+            <button onClick={() => updateSection(i, 'type', 'numerical')}
+              className={`px-2 py-1 rounded text-[11px] font-mono font-bold transition-colors ${s.type === 'numerical' ? 'bg-primary text-primary-foreground' : 'bg-card border border-border text-muted-foreground hover:text-foreground'}`}>
+              Numerical
+            </button>
           </div>
-          <span className="text-muted-foreground text-sm pb-2">–</span>
-          <div className="w-20">
-            <input type="number" placeholder="To" value={s.endQ} onChange={(e) => updateSection(i, 'endQ', e.target.value)}
-              className="w-full h-10 px-2 text-sm font-mono border border-border rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
-          </div>
-          <button onClick={() => removeSection(i)} className="h-10 px-2 text-destructive hover:bg-destructive/10 rounded text-sm">✕</button>
         </div>
       ))}
     </div>
