@@ -88,16 +88,39 @@ const AnalysisPage = () => {
   const analysis = useMemo(() => {
     if (!result || !answerKey) return [];
     return result.responses.map((r) => {
-      const correct = answerKey[r.questionNo] ?? null;
-      const isCorrect = r.selected !== null && r.selected === correct;
-      const isWrong = r.selected !== null && correct !== null && r.selected !== correct;
+      const rawCorrect = answerKey[r.questionNo] ?? null;
+      const isBonus = rawCorrect === 'BONUS';
+      const isMultiCorrect = Array.isArray(rawCorrect);
+      const isNumericalKey = typeof rawCorrect === 'string' && rawCorrect !== 'BONUS' && !['A','B','C','D'].includes(rawCorrect);
+      
+      let isCorrect = false;
+      let isWrong = false;
+      const userAnswer = r.numericalAnswer || r.selected;
+      
+      if (isBonus) {
+        isCorrect = true; // Everyone gets marks
+      } else if (isMultiCorrect) {
+        isCorrect = r.selected !== null && rawCorrect.includes(r.selected);
+        isWrong = r.selected !== null && !rawCorrect.includes(r.selected);
+      } else if (isNumericalKey) {
+        isCorrect = !!r.numericalAnswer && r.numericalAnswer.trim() === rawCorrect.trim();
+        isWrong = !!r.numericalAnswer && r.numericalAnswer.trim() !== rawCorrect.trim();
+      } else {
+        isCorrect = r.selected !== null && r.selected === rawCorrect;
+        isWrong = r.selected !== null && rawCorrect !== null && r.selected !== rawCorrect;
+      }
+      
+      const isSkipped = r.selected === null && !r.numericalAnswer && !isBonus;
+      
       return {
         questionNo: r.questionNo,
         selected: r.selected,
-        correct,
+        numericalAnswer: r.numericalAnswer,
+        correct: rawCorrect,
         isCorrect,
         isWrong,
-        isSkipped: r.selected === null,
+        isBonus,
+        isSkipped,
         marks: isCorrect ? 4 : isWrong ? -1 : 0,
         timeGap: timeGaps[r.questionNo] ?? null,
         answeredAt: r.answeredAt,
