@@ -9,10 +9,13 @@ export const MARK_ICONS: Record<MarkType, { icon: string; label: string; color: 
   check: { icon: '👁', label: 'Check if time', color: 'text-primary' },
 };
 
+export type SectionType = 'mcq' | 'numerical';
+
 export interface TestSection {
   name: string;
   startQ: number;
   endQ: number;
+  type?: SectionType; // defaults to 'mcq'
 }
 
 export interface DisplayPrefs {
@@ -36,9 +39,10 @@ export const DEFAULT_DISPLAY_PREFS: DisplayPrefs = {
 export interface QuestionResponse {
   questionNo: number;
   selected: Option;
-  markedForReview: boolean; // kept for backward compat
+  numericalAnswer?: string; // for numerical sections
+  markedForReview: boolean;
   marks: MarkType[];
-  answeredAt: number | null; // timestamp
+  answeredAt: number | null;
 }
 
 export interface TestConfig {
@@ -47,7 +51,7 @@ export interface TestConfig {
   timeInMinutes: number;
   sections: TestSection[];
   displayPrefs: DisplayPrefs;
-  wallClockStartTime?: string; // HH:MM format e.g. "14:00"
+  wallClockStartTime?: string;
 }
 
 export interface TestResult {
@@ -57,8 +61,11 @@ export interface TestResult {
   endTime: number;
 }
 
+// Answer key: Option (single MCQ), 'BONUS', Option[] (multiple correct), string (numerical)
+export type AnswerKeyValue = Option | 'BONUS' | Option[] | string;
+
 export interface AnswerKey {
-  [questionNo: number]: Option;
+  [questionNo: number]: AnswerKeyValue;
 }
 
 export interface AnalysisItem {
@@ -66,5 +73,5 @@ export interface AnalysisItem {
   selected: Option;
   correct: Option;
   isCorrect: boolean;
-  timeTaken: number | null; // seconds from previous answer
+  timeTaken: number | null;
 }

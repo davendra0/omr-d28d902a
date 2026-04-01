@@ -63,6 +63,17 @@ export const useTestStore = create<TestStore>((set, get) => ({
     });
   },
 
+  setNumericalAnswer: (questionNo, answer) => {
+    const { responses } = get();
+    set({
+      responses: responses.map((r) =>
+        r.questionNo === questionNo
+          ? { ...r, numericalAnswer: answer, answeredAt: answer ? Date.now() : r.answeredAt }
+          : r
+      ),
+    });
+  },
+
   toggleReview: (questionNo) => {
     const { responses } = get();
     set({
