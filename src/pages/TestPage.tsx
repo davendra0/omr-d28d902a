@@ -10,7 +10,7 @@ const optionsList: Option[] = ['A', 'B', 'C', 'D'];
 const AUTOSAVE_KEY = 'omr_autosave';
 
 const TestPage = () => {
-  const { config, responses, selectOption, toggleMark, endTest } = useTestStore();
+  const { config, responses, selectOption, setNumericalAnswer, toggleMark, endTest } = useTestStore();
   const navigate = useNavigate();
   const [showConfirm, setShowConfirm] = useState(false);
   const [showQuitWarning, setShowQuitWarning] = useState(false);
