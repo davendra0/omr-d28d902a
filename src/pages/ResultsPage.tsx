@@ -32,14 +32,23 @@ const ResultsPage = () => {
   let correct = 0, incorrect = 0, score = 0;
   if (answerKey) {
     responses.forEach((r) => {
-      if (r.selected) {
-        if (answerKey[r.questionNo] && r.selected === answerKey[r.questionNo]) {
-          correct++;
-          score += 4;
-        } else if (answerKey[r.questionNo]) {
-          incorrect++;
-          score -= 1;
-        }
+      const rawAns = answerKey[r.questionNo];
+      const isBonus = rawAns === 'BONUS';
+      const isMulti = Array.isArray(rawAns);
+      const isNumericalKey = typeof rawAns === 'string' && rawAns !== 'BONUS' && !['A','B','C','D'].includes(rawAns);
+      
+      if (isBonus) {
+        correct++;
+        score += 4;
+      } else if (isMulti) {
+        if (r.selected && rawAns.includes(r.selected)) { correct++; score += 4; }
+        else if (r.selected) { incorrect++; score -= 1; }
+      } else if (isNumericalKey) {
+        if (r.numericalAnswer?.trim() === rawAns.trim()) { correct++; score += 4; }
+        else if (r.numericalAnswer) { incorrect++; score -= 1; }
+      } else if (r.selected) {
+        if (rawAns && r.selected === rawAns) { correct++; score += 4; }
+        else if (rawAns) { incorrect++; score -= 1; }
       }
     });
   }
